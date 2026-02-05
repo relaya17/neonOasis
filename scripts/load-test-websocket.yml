@@ -1,0 +1,62 @@
+# Artillery WebSocket Load Testing
+# Tests Socket.io performance under concurrent connections
+
+config:
+  target: 'ws://localhost:4000'
+  phases:
+    # Gradual ramp-up to 100 concurrent connections
+    - duration: 60
+      arrivalRate: 10
+      rampTo: 100
+      name: "WebSocket Ramp-up"
+    
+    # Sustained load: 100 concurrent connections
+    - duration: 120
+      arrivalRate: 100
+      name: "WebSocket Peak"
+  
+  engines:
+    socketio: {}
+  
+  ensure:
+    maxErrorRate: 1
+    p95: 100  # WebSocket messages should be < 100ms
+
+scenarios:
+  # Scenario 1: Join Room + Place Bet
+  - name: "Join Room and Bet"
+    engine: socketio
+    flow:
+      - emit:
+          channel: "JOIN_TABLE"
+          data:
+            tableId: "test-table-{{ $randomNumber(1, 10) }}"
+      
+      - think: 2  # Wait 2 seconds
+      
+      - emit:
+          channel: "PLACE_BET"
+          data:
+            tableId: "test-table-{{ $randomNumber(1, 10) }}"
+            userId: "test-user-{{ $randomNumber(1, 1000) }}"
+            amount: "{{ $randomNumber(10, 100) }}"
+      
+      - think: 5  # Wait 5 seconds
+      
+      - emit:
+          channel: "disconnect"
+
+  # Scenario 2: Spectator Mode
+  - name: "Spectator Join"
+    engine: socketio
+    flow:
+      - emit:
+          channel: "JOIN_TABLE"
+          data:
+            tableId: "test-table-1"
+            spectator: true
+      
+      - think: 10  # Watch for 10 seconds
+      
+      - emit:
+          channel: "disconnect"

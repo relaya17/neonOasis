@@ -1,0 +1,48 @@
+{
+  "common": {
+    "appName": "Neon Oasis",
+    "nav": {
+      "feed": "Feed",
+      "shop": "Tienda",
+      "rank": "Ranking",
+      "me": "Yo",
+      "backgammon": "Backgammon",
+      "store": "Tienda",
+      "admin": "Admin",
+      "lobby": "Lobby"
+    },
+    "balance": "monedas",
+    "loading": "Cargando...",
+    "leaderboard": "Tabla de clasificación",
+    "username": "Nombre de usuario",
+    "redeemCode": "Canjear código",
+    "redeem": "Canjear",
+    "referralLink": "Invita a un amigo y obtén 1,000 monedas",
+    "getLink": "Obtener enlace",
+    "copyLink": "Copiar enlace",
+    "copied": "¡Copiado!",
+    "walletValue": "Valor de la billetera",
+    "walletValueDemo": "Billetera (sin historial aún)",
+    "login": "Iniciar sesión",
+    "loginSubtitle": "Ingresa tu usuario o continúa como invitado",
+    "continueAsGuest": "Continuar como invitado",
+    "logout": "Cerrar sesión",
+    "back": "Volver",
+    "accept": "Acepto",
+    "offline": "Sin conexión",
+    "apiOffline": "API no disponible",
+    "matchmaking": "Emparejamiento",
+    "searching": "Buscando partida...",
+    "cancel": "Cancelar",
+    "tournament": "Torneo",
+    "purchasing": "Comprando...",
+    "purchaseSuccess": "¡Compra exitosa!",
+    "purchaseFailed": "Compra fallida",
+    "networkError": "Error de red",
+    "footer": {
+      "terms": "Términos de servicio",
+      "privacy": "Política de privacidad",
+      "responsible": "Juego responsable"
+    }
+  }
+}

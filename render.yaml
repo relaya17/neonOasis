@@ -1,0 +1,41 @@
+services:
+  # API Server
+  - type: web
+    name: neon-oasis-api
+    runtime: node
+    plan: starter
+    region: frankfurt
+    buildCommand: pnpm install && pnpm run build
+    startCommand: cd apps/api && node dist/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: neon-oasis-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: neon-oasis-redis
+          property: connectionString
+      - key: CORS_ORIGIN
+        sync: false
+    healthCheckPath: /api/health
+    
+  # Redis Cache
+  - type: redis
+    name: neon-oasis-redis
+    plan: starter
+    region: frankfurt
+    maxmemoryPolicy: allkeys-lru
+    
+# PostgreSQL Database
+databases:
+  - name: neon-oasis-db
+    plan: starter
+    region: frankfurt
+    databaseName: neonoasis
+    user: neonoasis

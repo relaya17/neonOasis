@@ -1,0 +1,99 @@
+# Artillery Load Testing Configuration
+# Tests API and WebSocket performance under load
+
+config:
+  target: 'http://localhost:4000'
+  phases:
+    # Warm-up: 10 users over 30 seconds
+    - duration: 30
+      arrivalRate: 10
+      name: "Warm-up"
+    
+    # Ramp-up: 10 → 100 users over 60 seconds
+    - duration: 60
+      arrivalRate: 10
+      rampTo: 100
+      name: "Ramp-up"
+    
+    # Peak load: 100 users for 2 minutes
+    - duration: 120
+      arrivalRate: 100
+      name: "Peak load"
+    
+    # Cool-down: 100 → 10 users over 30 seconds
+    - duration: 30
+      arrivalRate: 100
+      rampTo: 10
+      name: "Cool-down"
+  
+  # Performance thresholds
+  ensure:
+    maxErrorRate: 1  # Max 1% errors
+    p95: 200         # 95th percentile < 200ms
+    p99: 500         # 99th percentile < 500ms
+
+  # Plugins
+  plugins:
+    expect: {}
+    metrics-by-endpoint: {}
+
+scenarios:
+  # Scenario 1: Guest Login
+  - name: "Guest Login Flow"
+    weight: 30
+    flow:
+      - post:
+          url: "/api/auth/guest"
+          json:
+            {}
+          capture:
+            json: "$.userId"
+            as: "userId"
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: userId
+
+  # Scenario 2: User Profile
+  - name: "User Profile Fetch"
+    weight: 20
+    flow:
+      - post:
+          url: "/api/auth/guest"
+          json: {}
+          capture:
+            json: "$.userId"
+            as: "userId"
+      - get:
+          url: "/api/users/{{ userId }}"
+          expect:
+            - statusCode: 200
+
+  # Scenario 3: Leaderboard
+  - name: "Leaderboard Query"
+    weight: 25
+    flow:
+      - get:
+          url: "/api/leaderboard"
+          expect:
+            - statusCode: 200
+            - contentType: json
+
+  # Scenario 4: Tournament List
+  - name: "Tournament List"
+    weight: 15
+    flow:
+      - get:
+          url: "/api/tournaments"
+          expect:
+            - statusCode: 200
+            - contentType: json
+
+  # Scenario 5: Health Check
+  - name: "Health Check"
+    weight: 10
+    flow:
+      - get:
+          url: "/api/health"
+          expect:
+            - statusCode: 200

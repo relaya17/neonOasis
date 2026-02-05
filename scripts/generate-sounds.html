@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Neon Oasis - Sound Generator</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0a0e27;
+      color: #00ffff;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 { color: #ff00ff; text-shadow: 0 0 10px #ff00ff; }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      padding: 12px 24px;
+      margin: 8px;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: transform 0.2s;
+    }
+    button:hover { transform: scale(1.05); }
+    button:active { transform: scale(0.95); }
+    .section {
+      background: rgba(255,255,255,0.05);
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 12px;
+      border: 1px solid rgba(0,255,255,0.2);
+    }
+    .sound-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+    }
+    .status {
+      margin-top: 10px;
+      padding: 10px;
+      background: rgba(0,255,0,0.1);
+      border-radius: 4px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎵 Neon Oasis Sound Generator</h1>
+  <p>Generate all sound files for the game using Web Audio API</p>
+
+  <div class="section">
+    <h2>Sound Effects</h2>
+    <div class="sound-grid" id="soundEffects"></div>
+  </div>
+
+  <div class="section">
+    <h2>Voice Narration (TTS)</h2>
+    <div class="sound-grid" id="voiceNarration"></div>
+  </div>
+
+  <div class="section">
+    <h2>Background Music</h2>
+    <div class="sound-grid" id="backgroundMusic"></div>
+  </div>
+
+  <button onclick="generateAllSounds()" style="font-size: 18px; padding: 16px 32px;">
+    🎵 Generate All Sounds
+  </button>
+
+  <div id="status" class="status" style="display:none;"></div>
+
+  <script>
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+    // Sound definitions
+    const soundEffects = [
+      { name: 'click', freq: 800, duration: 0.05, type: 'sine' },
+      { name: 'neon_click', freq: 1200, duration: 0.08, type: 'sine', modulation: true },
+      { name: 'dice_roll', freq: 400, duration: 0.5, type: 'noise', sweep: true },
+      { name: 'dice_land', freq: 600, duration: 0.15, type: 'triangle' },
+      { name: 'win', freq: 1000, duration: 1.0, type: 'sine', chord: [1, 1.25, 1.5] },
+      { name: 'lose', freq: 300, duration: 0.8, type: 'sawtooth', descend: true },
+      { name: 'notification', freq: 900, duration: 0.3, type: 'sine', beep: true },
+      { name: 'coin', freq: 1500, duration: 0.2, type: 'sine', metallic: true },
+      { name: 'card_flip', freq: 700, duration: 0.1, type: 'noise' },
+      { name: 'chip_stack', freq: 500, duration: 0.3, type: 'triangle', stack: true }
+    ];
+
+    const voiceTexts = {
+      welcome: { en: 'Welcome to the Oasis. The table is waiting.', he: 'ברוכים הבאים לנווה המדבר. השולחן מחכה.' },
+      stake: { en: 'Stakes are high. Show them what you are made of.', he: 'ההימור גבוה. תראה להם ממה אתה עשוי.' },
+      win: { en: 'Clean move.', he: 'מהלך נקי.' },
+      big_win: { en: 'Legendary. The Oasis remembers.', he: 'אגדי. הנווה זוכר.' },
+      loss: { en: 'Fortune favors the bold. Next time, it is yours.', he: 'המזל משרת את האמיצים. בפעם הבאה, זה שלך.' },
+      reward: { en: 'Another coin in the empire. Keep building.', he: 'עוד מטבע באימפריה. המשך לבנות.' },
+      guardian: { en: 'The Oasis sees everything. Play fair, or do not play at all.', he: 'הנווה רואה הכל. שחק הוגן, או אל תשחק בכלל.' },
+      yalla: { en: 'Yalla, make your move.', he: 'יאללה, תעשה את המהלך שלך.' }
+    };
+
+    // Generate sound effect
+    async function generateSoundEffect(config) {
+      const sampleRate = audioContext.sampleRate;
+      const length = config.duration * sampleRate;
+      const buffer = audioContext.createBuffer(1, length, sampleRate);
+      const data = buffer.getChannelData(0);
+
+      for (let i = 0; i < length; i++) {
+        const t = i / sampleRate;
+        let value = 0;
+
+        if (config.type === 'noise') {
+          value = (Math.random() * 2 - 1) * 0.3;
+        } else if (config.chord) {
+          config.chord.forEach(ratio => {
+            value += Math.sin(2 * Math.PI * config.freq * ratio * t) / config.chord.length;
+          });
+        } else {
+          const freq = config.sweep ? config.freq * (1 + t) : 
+                       config.descend ? config.freq * (1 - t * 0.5) : config.freq;
+          
+          switch(config.type) {
+            case 'sine':
+              value = Math.sin(2 * Math.PI * freq * t);
+              break;
+            case 'triangle':
+              value = 2 * Math.abs(2 * ((freq * t) % 1) - 1) - 1;
+              break;
+            case 'sawtooth':
+              value = 2 * ((freq * t) % 1) - 1;
+              break;
+          }
+        }
+
+        // Envelope (fade in/out)
+        const fadeIn = Math.min(1, i / (sampleRate * 0.01));
+        const fadeOut = Math.min(1, (length - i) / (sampleRate * 0.05));
+        data[i] = value * fadeIn * fadeOut * 0.5;
+      }
+
+      return buffer;
+    }
+
+    // Generate voice using TTS
+    async function generateVoice(text, lang) {
+      return new Promise((resolve) => {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = lang === 'he' ? 'he-IL' : 'en-US';
+        utterance.rate = 0.95;
+        utterance.pitch = 0.8;
+        utterance.volume = 0.8;
+        utterance.onend = () => resolve(true);
+        window.speechSynthesis.speak(utterance);
+      });
+    }
+
+    // Buffer to WAV
+    function bufferToWav(buffer) {
+      const length = buffer.length * buffer.numberOfChannels * 2;
+      const wav = new ArrayBuffer(44 + length);
+      const view = new DataView(wav);
+
+      // WAV header
+      const writeString = (offset, string) => {
+        for (let i = 0; i < string.length; i++) {
+          view.setUint8(offset + i, string.charCodeAt(i));
+        }
+      };
+
+      writeString(0, 'RIFF');
+      view.setUint32(4, 36 + length, true);
+      writeString(8, 'WAVE');
+      writeString(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, buffer.numberOfChannels, true);
+      view.setUint32(24, buffer.sampleRate, true);
+      view.setUint32(28, buffer.sampleRate * buffer.numberOfChannels * 2, true);
+      view.setUint16(32, buffer.numberOfChannels * 2, true);
+      view.setUint16(34, 16, true);
+      writeString(36, 'data');
+      view.setUint32(40, length, true);
+
+      // Audio data
+      let offset = 44;
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) {
+        const sample = Math.max(-1, Math.min(1, data[i]));
+        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+        offset += 2;
+      }
+
+      return new Blob([wav], { type: 'audio/wav' });
+    }
+
+    // Download file
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Generate individual sound
+    async function generateSound(config, filename) {
+      updateStatus(`Generating ${filename}...`);
+      const buffer = await generateSoundEffect(config);
+      const blob = bufferToWav(buffer);
+      downloadBlob(blob, filename);
+      updateStatus(`✅ Generated ${filename}`);
+    }
+
+    // Generate all sounds
+    async function generateAllSounds() {
+      updateStatus('Starting sound generation...', true);
+      
+      // Generate sound effects
+      for (const effect of soundEffects) {
+        await generateSound(effect, `${effect.name}.wav`);
+        await new Promise(r => setTimeout(r, 100));
+      }
+
+      updateStatus('✅ All sounds generated! Save them to apps/web/public/sounds/');
+      alert('All sound files generated! Check your Downloads folder.\n\nNote: Convert WAV to MP3 using a tool like FFmpeg or an online converter for smaller file sizes.');
+    }
+
+    // Update status
+    function updateStatus(message, show = true) {
+      const status = document.getElementById('status');
+      status.textContent = message;
+      status.style.display = show ? 'block' : 'none';
+    }
+
+    // Create UI buttons
+    function createUI() {
+      const effectsDiv = document.getElementById('soundEffects');
+      soundEffects.forEach(effect => {
+        const btn = document.createElement('button');
+        btn.textContent = effect.name.replace('_', ' ');
+        btn.onclick = () => generateSound(effect, `${effect.name}.wav`);
+        effectsDiv.appendChild(btn);
+      });
+
+      const voiceDiv = document.getElementById('voiceNarration');
+      Object.keys(voiceTexts).forEach(key => {
+        ['en', 'he'].forEach(lang => {
+          const btn = document.createElement('button');
+          btn.textContent = `${key}_${lang}`;
+          btn.onclick = async () => {
+            updateStatus(`Playing ${key}_${lang}...`, true);
+            await generateVoice(voiceTexts[key][lang], lang);
+            updateStatus(`Note: Voice files require recording or TTS conversion`, true);
+          };
+          voiceDiv.appendChild(btn);
+        });
+      });
+
+      const bgDiv = document.getElementById('backgroundMusic');
+      const bgBtn = document.createElement('button');
+      bgBtn.textContent = 'Generate BGM Loop';
+      bgBtn.onclick = () => alert('Background music requires music production software like FL Studio or Ableton.');
+      bgDiv.appendChild(bgBtn);
+    }
+
+    createUI();
+  </script>
+</body>
+</html>

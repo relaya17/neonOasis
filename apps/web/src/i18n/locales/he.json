@@ -1,0 +1,48 @@
+{
+  "common": {
+    "appName": "Neon Oasis",
+    "nav": {
+      "feed": "הפיד",
+      "shop": "חנות",
+      "rank": "דירוג",
+      "me": "אני",
+      "backgammon": "שש-בש",
+      "store": "חנות",
+      "admin": "ניהול",
+      "lobby": "לובי"
+    },
+    "balance": "מטבעות",
+    "loading": "טוען...",
+    "leaderboard": "טבלת מובילים",
+    "username": "שם משתמש",
+    "redeemCode": "מימוש קוד",
+    "redeem": "ממש",
+    "referralLink": "הזמן חבר וקבל 1,000 מטבעות",
+    "getLink": "קבל קישור",
+    "copyLink": "העתק קישור",
+    "copied": "הועתק!",
+    "walletValue": "ערך ארנק",
+    "walletValueDemo": "ארנק (עדיין אין היסטוריה)",
+    "login": "התחבר",
+    "loginSubtitle": "הזן שם משתמש או המשך כאורח",
+    "continueAsGuest": "המשך כאורח",
+    "logout": "התנתק",
+    "back": "חזרה",
+    "accept": "אני מאשר/ת",
+    "offline": "לא מקוון",
+    "apiOffline": "ה־API לא זמין",
+    "matchmaking": "חיפוש משחק",
+    "searching": "מחפש משחק...",
+    "cancel": "ביטול",
+    "tournament": "טורניר",
+    "purchasing": "רוכש...",
+    "purchaseSuccess": "רכישה הצליחה!",
+    "purchaseFailed": "רכישה נכשלה",
+    "networkError": "שגיאת רשת",
+    "footer": {
+      "terms": "תקנון",
+      "privacy": "מדיניות פרטיות",
+      "responsible": "משחק אחראי"
+    }
+  }
+}

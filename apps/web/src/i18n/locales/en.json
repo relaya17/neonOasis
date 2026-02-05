@@ -1,0 +1,48 @@
+{
+  "common": {
+    "appName": "Neon Oasis",
+    "nav": {
+      "feed": "Feed",
+      "shop": "Shop",
+      "rank": "Rank",
+      "me": "Me",
+      "backgammon": "Backgammon",
+      "store": "Store",
+      "admin": "Admin",
+      "lobby": "Lobby"
+    },
+    "balance": "coins",
+    "loading": "Loading...",
+    "leaderboard": "Leaderboard",
+    "username": "Username",
+    "redeemCode": "Redeem code",
+    "redeem": "Redeem",
+    "referralLink": "Invite friend – get 1,000 coins",
+    "getLink": "Get link",
+    "copyLink": "Copy link",
+    "copied": "Copied!",
+    "walletValue": "Wallet value",
+    "walletValueDemo": "Wallet (no history yet)",
+    "login": "Login",
+    "loginSubtitle": "Enter username or continue as guest",
+    "continueAsGuest": "Continue as guest",
+    "logout": "Log out",
+    "back": "Back",
+    "accept": "I Accept",
+    "offline": "Offline",
+    "apiOffline": "API is offline",
+    "matchmaking": "Matchmaking",
+    "searching": "Searching for game...",
+    "cancel": "Cancel",
+    "tournament": "Tournament",
+    "purchasing": "Purchasing...",
+    "purchaseSuccess": "Purchase successful!",
+    "purchaseFailed": "Purchase failed",
+    "networkError": "Network error",
+    "footer": {
+      "terms": "Terms of Service",
+      "privacy": "Privacy Policy",
+      "responsible": "Responsible Gaming"
+    }
+  }
+}

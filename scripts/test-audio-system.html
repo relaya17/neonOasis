@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🎵 Neon Oasis - Audio System Tester</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1a2e 100%);
+      color: #00ffff;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      color: #ff00ff;
+      text-shadow: 0 0 20px #ff00ff;
+      margin-bottom: 10px;
+      font-size: 3em;
+    }
+    .subtitle {
+      text-align: center;
+      color: #00ffff;
+      margin-bottom: 40px;
+      opacity: 0.8;
+    }
+    .section {
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid rgba(0, 255, 255, 0.3);
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 30px;
+      backdrop-filter: blur(10px);
+    }
+    .section h2 {
+      color: #ff00ff;
+      margin-bottom: 20px;
+      font-size: 1.8em;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      padding: 15px 25px;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 12px;
+      transition: all 0.3s;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    button.playing {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .controls {
+      margin-bottom: 20px;
+    }
+    .control-group {
+      margin-bottom: 15px;
+    }
+    .control-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #00ffff;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 8px;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.2);
+      outline: none;
+      -webkit-appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(102, 126, 234, 0.6);
+    }
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+    .visualizer {
+      height: 150px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      margin: 20px 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-around;
+      padding: 10px;
+      gap: 5px;
+    }
+    .bar {
+      flex: 1;
+      background: linear-gradient(0deg, #00ffff 0%, #ff00ff 100%);
+      border-radius: 4px 4px 0 0;
+      transition: height 0.1s;
+      min-height: 5px;
+    }
+    .info-box {
+      background: rgba(0, 255, 255, 0.1);
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      border-radius: 8px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    .info-box h3 {
+      color: #ff00ff;
+      margin-bottom: 10px;
+    }
+    .status {
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 20px;
+      background: rgba(0, 255, 0, 0.1);
+      border: 1px solid rgba(0, 255, 0, 0.3);
+      display: none;
+    }
+    .status.error {
+      background: rgba(255, 0, 0, 0.1);
+      border-color: rgba(255, 0, 0, 0.3);
+    }
+    .spatial-demo {
+      position: relative;
+      height: 300px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 12px;
+      margin: 20px 0;
+      overflow: hidden;
+    }
+    .listener {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      background: #00ffff;
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 20px #00ffff;
+      z-index: 2;
+    }
+    .sound-source {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      background: #ff00ff;
+      border-radius: 50%;
+      cursor: move;
+      box-shadow: 0 0 15px #ff00ff;
+      transition: all 0.3s;
+    }
+    .sound-source:hover {
+      transform: scale(1.2);
+    }
+    .sound-source.active {
+      animation: ripple 1s infinite;
+    }
+    @keyframes ripple {
+      0% { box-shadow: 0 0 0 0 rgba(255, 0, 255, 0.7); }
+      100% { box-shadow: 0 0 0 30px rgba(255, 0, 255, 0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎵 Neon Oasis Audio Tester</h1>
+    <p class="subtitle">Test all advanced audio features in real-time</p>
+
+    <!-- Sound Effects -->
+    <div class="section">
+      <h2>🔊 Sound Effects</h2>
+      <div class="grid" id="soundEffects"></div>
+      <div class="visualizer" id="visualizer">
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+      </div>
+    </div>
+
+    <!-- 3D Spatial Audio -->
+    <div class="section">
+      <h2>🎯 3D Spatial Audio Demo</h2>
+      <div class="info-box">
+        <h3>How to use:</h3>
+        <p>• Drag the pink dot around the screen</p>
+        <p>• The cyan dot in the center is your ears (listener)</p>
+        <p>• Notice how the sound pans left/right based on position</p>
+      </div>
+      <div class="spatial-demo" id="spatialDemo">
+        <div class="listener" title="Your ears"></div>
+        <div class="sound-source" id="soundSource" style="top: 30px; left: 30px;" title="Drag me!"></div>
+      </div>
+      <button id="testSpatialBtn">Play Spatial Sound</button>
+    </div>
+
+    <!-- Voice Narration -->
+    <div class="section">
+      <h2>🗣️ Voice Narration (TTS Demo)</h2>
+      <div class="grid" id="voiceNarration"></div>
+    </div>
+
+    <!-- Adaptive Music -->
+    <div class="section">
+      <h2>🎵 Adaptive Music System</h2>
+      <div class="info-box">
+        <h3>Simulate game states:</h3>
+        <p>• Watch how music adapts to time and stakes</p>
+        <p>• BPM increases as time runs out</p>
+        <p>• Tension layer fades in/out</p>
+      </div>
+      <div class="control-group">
+        <label>Time Remaining: <span id="timeValue">60</span>s</label>
+        <input type="range" id="timeSlider" min="0" max="60" value="60" />
+      </div>
+      <div class="checkbox-group">
+        <input type="checkbox" id="highStakes" />
+        <label for="highStakes">High Stakes Mode</label>
+      </div>
+      <button id="startMusicBtn">▶️ Start Music</button>
+      <button id="stopMusicBtn">⏹️ Stop Music</button>
+    </div>
+
+    <!-- Audio Ducking -->
+    <div class="section">
+      <h2>🎚️ Audio Ducking Demo</h2>
+      <div class="info-box">
+        <h3>What is Audio Ducking?</h3>
+        <p>Background music automatically lowers volume during important sounds</p>
+      </div>
+      <button id="testDuckingBtn">Test Ducking Effect</button>
+    </div>
+
+    <!-- Settings -->
+    <div class="section">
+      <h2>⚙️ Audio Settings</h2>
+      <div class="controls">
+        <div class="control-group">
+          <label>Master Volume: <span id="masterVolValue">70</span>%</label>
+          <input type="range" id="masterVol" min="0" max="100" value="70" />
+        </div>
+        <div class="control-group">
+          <label>Voice Volume: <span id="voiceVolValue">80</span>%</label>
+          <input type="range" id="voiceVol" min="0" max="100" value="80" />
+        </div>
+        <div class="control-group">
+          <label>Music Volume: <span id="musicVolValue">40</span>%</label>
+          <input type="range" id="musicVol" min="0" max="100" value="40" />
+        </div>
+        <div class="checkbox-group">
+          <input type="checkbox" id="spatialAudio" checked />
+          <label for="spatialAudio">Enable 3D Spatial Audio</label>
+        </div>
+        <div class="checkbox-group">
+          <input type="checkbox" id="audioDucking" checked />
+          <label for="audioDucking">Enable Audio Ducking</label>
+        </div>
+      </div>
+    </div>
+
+    <div id="status" class="status"></div>
+  </div>
+
+  <script>
+    // Simple audio context
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    let currentSource = null;
+    let masterGain = audioContext.createGain();
+    masterGain.connect(audioContext.destination);
+
+    // Sound definitions
+    const sounds = {
+      click: { freq: 800, duration: 0.05 },
+      neon_click: { freq: 1200, duration: 0.08 },
+      dice_roll: { freq: 400, duration: 0.5 },
+      dice_land: { freq: 600, duration: 0.15 },
+      win: { freq: [1000, 1250, 1500], duration: 1.0 },
+      lose: { freq: 300, duration: 0.8, descend: true },
+      notification: { freq: 900, duration: 0.3 },
+      coin: { freq: 1500, duration: 0.2 },
+      card_flip: { freq: 700, duration: 0.1 },
+      chip_stack: { freq: 500, duration: 0.3 }
+    };
+
+    const voices = {
+      welcome: { en: 'Welcome to the Oasis. The table is waiting.' },
+      stake: { en: 'Stakes are high. Show them what you are made of.' },
+      win: { en: 'Clean move.' },
+      big_win: { en: 'Legendary. The Oasis remembers.' },
+      loss: { en: 'Fortune favors the bold. Next time, it is yours.' },
+      reward: { en: 'Another coin in the empire. Keep building.' },
+      guardian: { en: 'The Oasis sees everything. Play fair, or do not play at all.' },
+      yalla: { en: 'Yalla, make your move.' }
+    };
+
+    // Play simple beep
+    function playBeep(config, spatialPos = null) {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      let destination = masterGain;
+
+      // 3D Audio
+      if (spatialPos && document.getElementById('spatialAudio').checked) {
+        const panner = audioContext.createPanner();
+        panner.panningModel = 'HRTF';
+        panner.setPosition(spatialPos.x, spatialPos.y, spatialPos.z);
+        oscillator.connect(gainNode);
+        gainNode.connect(panner);
+        panner.connect(destination);
+      } else {
+        oscillator.connect(gainNode);
+        gainNode.connect(destination);
+      }
+
+      const freqs = Array.isArray(config.freq) ? config.freq : [config.freq];
+      oscillator.frequency.value = freqs[0];
+      oscillator.type = 'sine';
+
+      const now = audioContext.currentTime;
+      gainNode.gain.setValueAtTime(0.3, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + config.duration);
+
+      oscillator.start(now);
+      oscillator.stop(now + config.duration);
+
+      currentSource = oscillator;
+      visualizeAudio();
+    }
+
+    // Visualizer
+    function visualizeAudio() {
+      const bars = document.querySelectorAll('.bar');
+      bars.forEach((bar, i) => {
+        const height = Math.random() * 100 + 20;
+        bar.style.height = height + '%';
+        setTimeout(() => {
+          bar.style.height = '5px';
+        }, 100);
+      });
+    }
+
+    // TTS
+    function playTTS(text) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.95;
+      utterance.pitch = 0.8;
+      utterance.volume = document.getElementById('voiceVol').value / 100;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // Setup UI
+    function setupUI() {
+      // Sound effects
+      const effectsDiv = document.getElementById('soundEffects');
+      Object.keys(sounds).forEach(key => {
+        const btn = document.createElement('button');
+        btn.textContent = key.replace('_', ' ').toUpperCase();
+        btn.onclick = () => {
+          btn.classList.add('playing');
+          playBeep(sounds[key]);
+          setTimeout(() => btn.classList.remove('playing'), 200);
+        };
+        effectsDiv.appendChild(btn);
+      });
+
+      // Voice narration
+      const voiceDiv = document.getElementById('voiceNarration');
+      Object.keys(voices).forEach(key => {
+        const btn = document.createElement('button');
+        btn.textContent = key.toUpperCase();
+        btn.onclick = () => {
+          btn.classList.add('playing');
+          playTTS(voices[key].en);
+          setTimeout(() => btn.classList.remove('playing'), 2000);
+        };
+        voiceDiv.appendChild(btn);
+      });
+
+      // Volume controls
+      document.getElementById('masterVol').oninput = (e) => {
+        const val = e.target.value;
+        document.getElementById('masterVolValue').textContent = val;
+        masterGain.gain.value = val / 100;
+      };
+
+      document.getElementById('voiceVol').oninput = (e) => {
+        document.getElementById('voiceVolValue').textContent = e.target.value;
+      };
+
+      document.getElementById('musicVol').oninput = (e) => {
+        document.getElementById('musicVolValue').textContent = e.target.value;
+      };
+
+      // Time slider
+      document.getElementById('timeSlider').oninput = (e) => {
+        document.getElementById('timeValue').textContent = e.target.value;
+      };
+
+      // Music controls
+      document.getElementById('startMusicBtn').onclick = () => {
+        showStatus('Music started (simulated)');
+      };
+
+      document.getElementById('stopMusicBtn').onclick = () => {
+        showStatus('Music stopped');
+      };
+
+      // Ducking test
+      document.getElementById('testDuckingBtn').onclick = () => {
+        showStatus('Playing important sound - music volume ducking...');
+        playBeep(sounds.big_win);
+        setTimeout(() => {
+          showStatus('Music volume restored');
+        }, 1500);
+      };
+
+      // Spatial audio
+      setupSpatialAudio();
+    }
+
+    // 3D Spatial Audio
+    function setupSpatialAudio() {
+      const source = document.getElementById('soundSource');
+      const demo = document.getElementById('spatialDemo');
+      const btn = document.getElementById('testSpatialBtn');
+      let isDragging = false;
+
+      source.addEventListener('mousedown', () => isDragging = true);
+      document.addEventListener('mouseup', () => isDragging = false);
+      
+      demo.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        
+        const rect = demo.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        source.style.left = (x - 15) + 'px';
+        source.style.top = (y - 15) + 'px';
+      });
+
+      btn.onclick = () => {
+        const rect = demo.getBoundingClientRect();
+        const sourceRect = source.getBoundingClientRect();
+        
+        // Calculate position relative to listener (center)
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        const sourceX = sourceRect.left - rect.left + 15;
+        const sourceY = sourceRect.top - rect.top + 15;
+        
+        // Normalize to -1 to 1 range
+        const x = (sourceX - centerX) / centerX;
+        const z = (sourceY - centerY) / centerY;
+        
+        btn.classList.add('playing');
+        source.classList.add('active');
+        playBeep(sounds.dice_land, { x, y: 0, z });
+        
+        setTimeout(() => {
+          btn.classList.remove('playing');
+          source.classList.remove('active');
+        }, 500);
+      };
+    }
+
+    // Status display
+    function showStatus(message, isError = false) {
+      const status = document.getElementById('status');
+      status.textContent = message;
+      status.className = 'status' + (isError ? ' error' : '');
+      status.style.display = 'block';
+      setTimeout(() => {
+        status.style.display = 'none';
+      }, 3000);
+    }
+
+    // Initialize
+    setupUI();
+    showStatus('🎵 Audio System Ready!');
+  </script>
+</body>
+</html>

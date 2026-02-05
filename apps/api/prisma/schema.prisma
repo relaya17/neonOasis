@@ -1,0 +1,69 @@
+// The Neon Oasis — Prisma schema
+// Reflects PostgreSQL schema (src/db/schema.sql)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  username   String   @unique
+  avatarId   String   @default("default") @map("avatar_id")
+  isVerified Boolean  @default(false) @map("is_verified")
+  balance    Decimal  @default(0) @db.Decimal(20, 8)
+  level      Int      @default(1)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  transactions   Transaction[]
+  itemsInventory ItemInventory[]
+
+  @@map("users")
+}
+
+model Transaction {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  amount     Decimal  @db.Decimal(20, 8)
+  type       String   // purchase | win | bet | fee | gift | market_sale | market_buy
+  referenceId String? @map("reference_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("transactions")
+}
+
+model ItemInventory {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ownerId   String   @map("owner_id") @db.Uuid
+  itemType  String   @map("item_type")
+  rarity    String   @default("Common") // Common | Rare | Legendary
+  isForSale Boolean  @default(false) @map("is_for_sale")
+  price     Decimal? @db.Decimal(20, 8)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([isForSale])
+  @@map("items_inventory")
+}
+
+model AdminRevenue {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  amount     Decimal  @db.Decimal(20, 8)
+  sourceType String   @default("game") @map("source_type")
+  sourceId   String?  @map("source_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("admin_revenues")
+}

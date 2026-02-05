@@ -1,0 +1,50 @@
+{
+  "name": "the-neon-oasis",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Real-time gaming platform — Sync, AI Guardian, Vegas-style UX",
+  "workspaces": [
+    "apps/web",
+    "apps/api",
+    "packages/shared"
+  ],
+  "scripts": {
+    "install:all": "pnpm install",
+    "build": "turbo build",
+    "build:shared": "pnpm -C packages/shared run build",
+    "build:web": "pnpm -C apps/web run build",
+    "build:api": "pnpm -C apps/api run build",
+    "dev": "turbo dev",
+    "dev:web": "pnpm -C apps/web run dev",
+    "dev:api": "pnpm -C apps/api run dev",
+    "start": "pnpm run install:all && turbo build && turbo dev",
+    "run": "pnpm run start",
+    "setup": "pnpm run install:all && turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "db:run-sql": "pnpm -C apps/api run db:run-sql",
+    "test:load": "artillery run scripts/load-test.yml",
+    "test:load:ws": "artillery run scripts/load-test-websocket.yml",
+    "cap:init": "cd apps/web && npx cap init",
+    "cap:add:ios": "cd apps/web && npx cap add ios",
+    "cap:add:android": "cd apps/web && npx cap add android",
+    "cap:sync": "cd apps/web && pnpm run build && pnpm exec cap sync",
+    "cap:open:ios": "cd apps/web && pnpm exec cap open ios",
+    "cap:open:android": "cd apps/web && pnpm exec cap open android"
+  },
+  "packageManager": "pnpm@10.28.2",
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9.0.0"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-win32-x64-msvc": "^4.57.1"
+  },
+  "dependencies": {
+    "picomatch": "^4.0.3"
+  },
+  "devDependencies": {
+    "@prisma/fetch-engine": "^7.3.0",
+    "turbo": "^2.8.3"
+  }
+}

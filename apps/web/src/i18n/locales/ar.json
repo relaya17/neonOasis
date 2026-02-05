@@ -1,0 +1,48 @@
+{
+  "common": {
+    "appName": "Neon Oasis",
+    "nav": {
+      "feed": "المشاركات",
+      "shop": "المتجر",
+      "rank": "الترتيب",
+      "me": "أنا",
+      "backgammon": "طاولة الزهر",
+      "store": "المتجر",
+      "admin": "الإدارة",
+      "lobby": "اللوبي"
+    },
+    "balance": "عملات",
+    "loading": "جاري التحميل...",
+    "leaderboard": "لوحة المتصدرين",
+    "username": "اسم المستخدم",
+    "redeemCode": "استرداد الرمز",
+    "redeem": "استرداد",
+    "referralLink": "ادع صديقاً واحصل على 1,000 عملة",
+    "getLink": "احصل على الرابط",
+    "copyLink": "نسخ الرابط",
+    "copied": "تم النسخ!",
+    "walletValue": "قيمة المحفظة",
+    "walletValueDemo": "المحفظة (لا تاريخ بعد)",
+    "login": "تسجيل الدخول",
+    "loginSubtitle": "أدخل اسم المستخدم أو تابع كضيف",
+    "continueAsGuest": "تابع كضيف",
+    "logout": "تسجيل الخروج",
+    "back": "رجوع",
+    "accept": "أوافق",
+    "offline": "غير متصل",
+    "apiOffline": "الAPI غير متاح",
+    "matchmaking": "البحث عن مباراة",
+    "searching": "البحث عن لعبة...",
+    "cancel": "إلغاء",
+    "tournament": "البطولة",
+    "purchasing": "جاري الشراء...",
+    "purchaseSuccess": "نجح الشراء!",
+    "purchaseFailed": "فشل الشراء",
+    "networkError": "خطأ في الشبكة",
+    "footer": {
+      "terms": "شروط الخدمة",
+      "privacy": "سياسة الخصوصية",
+      "responsible": "لعب مسؤول"
+    }
+  }
+}
