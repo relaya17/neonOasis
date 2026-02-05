@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Simple Game Sounds</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        button {
+            background: #00f5d4;
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background: #00ccaa;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            background: #2a2a2a;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎵 יצירת צלילי משחק פשוטים</h1>
+    
+    <div class="status" id="status">
+        לחץ על הכפתור ליצירת כל הצלילים
+    </div>
+
+    <button onclick="generateAllSounds()">🎵 צור את כל הצלילים</button>
+    <button onclick="downloadAll()">💾 הורד הכל (ZIP)</button>
+
+    <div id="sounds"></div>
+
+    <script>
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const generatedSounds = {};
+
+        function createBeep(frequency, duration, type = 'sine') {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = type;
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+            
+            return { oscillator, gainNode };
+        }
+
+        async function generateSound(name, config) {
+            const { frequency, duration, type } = config;
+            createBeep(frequency, duration, type);
+            
+            // Record the sound
+            const dest = audioContext.createMediaStreamDestination();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(dest);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = type || 'sine';
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            const recorder = new MediaRecorder(dest.stream);
+            const chunks = [];
+            
+            recorder.ondataavailable = (e) => chunks.push(e.data);
+            
+            return new Promise((resolve) => {
+                recorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: 'audio/webm' });
+                    generatedSounds[name] = blob;
+                    resolve(blob);
+                };
+                
+                recorder.start();
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + duration);
+                
+                setTimeout(() => recorder.stop(), duration * 1000 + 100);
+            });
+        }
+
+        const soundConfigs = {
+            'click': { frequency: 800, duration: 0.1, type: 'square' },
+            'neon_click': { frequency: 1200, duration: 0.15, type: 'sine' },
+            'dice_roll': { frequency: 400, duration: 0.5, type: 'sawtooth' },
+            'dice_land': { frequency: 200, duration: 0.3, type: 'square' },
+            'win': { frequency: 880, duration: 0.8, type: 'sine' },
+            'lose': { frequency: 220, duration: 0.6, type: 'triangle' },
+            'coin': { frequency: 1000, duration: 0.2, type: 'sine' },
+            'notification': { frequency: 660, duration: 0.3, type: 'sine' },
+            'card_flip': { frequency: 500, duration: 0.15, type: 'square' },
+            'chip_stack': { frequency: 300, duration: 0.25, type: 'triangle' },
+        };
+
+        async function generateAllSounds() {
+            const status = document.getElementById('status');
+            const soundsDiv = document.getElementById('sounds');
+            soundsDiv.innerHTML = '';
+            
+            status.textContent = 'מייצר צלילים...';
+            
+            for (const [name, config] of Object.entries(soundConfigs)) {
+                status.textContent = `מייצר: ${name}.mp3...`;
+                await generateSound(name, config);
+                await new Promise(r => setTimeout(r, 200)); // Wait between sounds
+                
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(generatedSounds[name]);
+                link.download = `${name}.mp3`;
+                link.textContent = `💾 ${name}.mp3`;
+                link.style.display = 'block';
+                link.style.margin = '5px';
+                link.style.color = '#00f5d4';
+                soundsDiv.appendChild(link);
+            }
+            
+            status.textContent = `✅ נוצרו ${Object.keys(soundConfigs).length} צלילים! לחץ על כל קישור להורדה.`;
+        }
+
+        function downloadAll() {
+            Object.entries(generatedSounds).forEach(([name, blob]) => {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `${name}.mp3`;
+                link.click();
+            });
+        }
+    </script>
+</body>
+</html>

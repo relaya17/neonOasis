@@ -11,7 +11,7 @@ import { VegasFeed } from '../features/feed';
 import { LandingPage } from '../features/landing';
 import { StoreView } from '../features/store';
 import { BoardContainer } from '../features/backgammon';
-import { TouchCardGame } from '../features/cards';
+import { TouchCardGame, SimplePoker, PokerTable } from '../features/cards';
 import { AdminDashboard, AdminGuard } from '../features/admin';
 import { ProfileView } from '../features/profile';
 import { LeaderboardView } from '../features/leaderboard';
@@ -119,6 +119,7 @@ export function App() {
             <Route path="/backgammon" element={<Layout><BoardContainer tableId="main" /></Layout>} />
             <Route path="/cards" element={<Layout><TouchCardGame /></Layout>} />
             <Route path="/touch" element={<Layout><TouchCardGame /></Layout>} />
+            <Route path="/poker" element={<Layout><PokerTable /></Layout>} />
             <Route path="/store" element={<Layout><StoreView /></Layout>} />
             <Route path="/profile" element={<Layout><ProfileView /></Layout>} />
             <Route path="/leaderboard" element={<Layout><LeaderboardView /></Layout>} />

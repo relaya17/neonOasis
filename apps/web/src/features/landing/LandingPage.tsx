@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { Box, Button, Typography, Paper, Grid, Card, CardContent, CardActions } from '@mui/material';
 import { motion } from 'framer-motion';
 import CasinoIcon from '@mui/icons-material/Casino';
@@ -57,7 +57,7 @@ const games: GameOption[] = [
     icon: <SportsEsportsIcon sx={{ fontSize: { xs: 40, sm: 60 } }} />,
     route: '/poker',
     color: NEON_PINK,
-    available: false,
+    available: true,
   },
 ];
 
@@ -264,8 +264,9 @@ export function LandingPage() {
             <Grid item xs={12} sm={6} md={4} key={game.id}>
               <Card
                 component={motion.div}
-                whileHover={{ scale: game.available ? 1.05 : 1 }}
-                whileTap={{ scale: game.available ? 0.95 : 1 }}
+                whileHover={{ scale: game.available ? 1.02 : 1 }}
+                whileTap={{ scale: game.available ? 0.98 : 1 }}
+                onClick={() => handleGameSelect(game)}
                 sx={{
                   bgcolor: game.available ? 'rgba(26, 26, 26, 0.9)' : 'rgba(50, 50, 50, 0.5)',
                   border: `2px solid ${game.available ? game.color : '#444'}`,
@@ -280,7 +281,6 @@ export function LandingPage() {
                       }
                     : {},
                 }}
-                onClick={() => handleGameSelect(game)}
               >
                 <CardContent sx={{ textAlign: 'center', py: 3 }}>
                   <Box sx={{ color: game.available ? game.color : '#666', mb: 2 }}>
@@ -306,24 +306,33 @@ export function LandingPage() {
                     {game.name}
                   </Typography>
                 </CardContent>
-                <CardActions sx={{ justifyContent: 'center', pb: 2 }}>
+                <CardActions sx={{ justifyContent: 'center', pb: 2, flexDirection: 'column', gap: 1 }}>
                   {game.available ? (
-                    <Typography
-                      sx={{
-                        color: game.color,
-                        fontSize: '0.85rem',
-                        fontWeight: 'bold',
-                      }}
-                    >
-                      ✓ זמין / Available
-                    </Typography>
+                    <>
+                      <Button
+                        component={RouterLink}
+                        to={game.route}
+                        variant="contained"
+                        size="medium"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          playSound('neon_click');
+                        }}
+                        sx={{
+                          bgcolor: game.color,
+                          color: '#000',
+                          fontWeight: 'bold',
+                          '&:hover': { bgcolor: game.color, opacity: 0.9 },
+                        }}
+                      >
+                        כניסה למשחק
+                      </Button>
+                      <Typography sx={{ color: game.color, fontSize: '0.85rem', fontWeight: 'bold' }}>
+                        ✓ זמין / Available
+                      </Typography>
+                    </>
                   ) : (
-                    <Typography
-                      sx={{
-                        color: '#666',
-                        fontSize: '0.85rem',
-                      }}
-                    >
+                    <Typography sx={{ color: '#666', fontSize: '0.85rem' }}>
                       🔒 בקרוב / Coming Soon
                     </Typography>
                   )}

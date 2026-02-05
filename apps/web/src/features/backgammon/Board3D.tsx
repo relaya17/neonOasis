@@ -6,6 +6,9 @@ import { OrbitControls, Stars } from '@react-three/drei';
 import type { Mesh } from 'three';
 import { Dice } from './Dice';
 import { useBackgammonStore } from './store';
+import { getLegalMoves, applyMove, getWinner } from '@neon-oasis/shared';
+import type { BackgammonMove } from '@neon-oasis/shared';
+import { socketService } from '../../api/socketService';
 import { hapticLand, hapticClick, useWebGLContextLoss, useAIDealer } from '../../shared/hooks';
 import { playSound } from '../../shared/audio';
 import { useNavigate } from 'react-router-dom';
@@ -20,7 +23,7 @@ const API_URL = import.meta.env.VITE_API_URL ?? '';
 export function BackgammonBoard3D() {
   const [rolling, setRolling] = useState(false);
   const [provablyFairOpen, setProvablyFairOpen] = useState(false);
-  const { state, setState } = useBackgammonStore();
+  const { state, setState, reset: resetGame } = useBackgammonStore();
   const navigate = useNavigate();
   const apiOnline = useApiStatusStore((s) => s.online);
   const { webglLost, onCanvasCreated } = useWebGLContextLoss();
@@ -79,23 +82,64 @@ export function BackgammonBoard3D() {
     })
       .then(async (res) => (res.ok ? res.json() : Promise.reject(new Error('roll failed'))))
       .then((data: { dice: [number, number] }) => {
-        setState({
-          ...state,
-          dice: data.dice,
-          lastMoveAt: Date.now(),
-        });
+        setState((s) => ({ ...s, dice: data.dice, lastMoveAt: Date.now() }));
         setTimeout(() => {
           setRolling(false);
-          hapticLand(); // Cyber-Vegas 2.0: רטט כשהקוביות נחתו
-          playSound('dice_land'); // Audio Spec: קריסטל על זכוכית — סנכרון <20ms
+          hapticLand();
+          playSound('dice_land');
         }, 2000);
       })
-      .catch((err) => {
-        setRolling(false);
-        setPfError(err?.message ?? 'roll failed');
+      .catch(() => {
+        const d1 = 1 + Math.floor(Math.random() * 6);
+        const d2 = 1 + Math.floor(Math.random() * 6);
+        setState((s) => ({ ...s, dice: [d1, d2], lastMoveAt: Date.now() }));
+        setTimeout(() => {
+          setRolling(false);
+          hapticLand();
+          playSound('dice_land');
+        }, 2000);
       });
 
     return () => controller.abort();
+  };
+
+  const legalMoves = state.dice !== null ? getLegalMoves(state) : [];
+  const winner = getWinner(state);
+
+  const aiTurnDoneRef = useRef(false);
+  useEffect(() => {
+    if (winner !== -1 || state.turn !== 1 || state.dice === null) {
+      aiTurnDoneRef.current = false;
+      return;
+    }
+    if (aiTurnDoneRef.current) return;
+    const aiMoves = getLegalMoves(state);
+    if (aiMoves.length === 0) {
+      aiTurnDoneRef.current = true;
+      setState((s) => ({ ...s, dice: null, turn: 0 }));
+      return;
+    }
+    const t = setTimeout(() => {
+      aiTurnDoneRef.current = true;
+      const move = aiMoves[0];
+      setState((s) => {
+        const next = applyMove(s, move);
+        return next ? { ...next, dice: null, turn: 0 } : s;
+      });
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [state.turn, state.dice, winner]);
+
+  const handleApplyMove = (move: BackgammonMove) => {
+    const next = applyMove(state, move);
+    if (!next) return;
+    playSound('neon_click');
+    setState({
+      ...next,
+      dice: null,
+      turn: (state.turn === 0 ? 1 : 0) as 0 | 1,
+    });
+    socketService.socket?.connected && socketService.sendMove('main', move);
   };
 
   const handleReveal = () => {
@@ -308,6 +352,68 @@ export function BackgammonBoard3D() {
         >
           חשוף Seed
         </Button>
+        {winner !== -1 && (
+          <MuiBox sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, mt: 1 }}>
+            <Typography sx={{ color: '#00ff00', fontWeight: 'bold' }}>
+              {winner === 0 ? '🔵 אתה ניצחת!' : '🔴 ה-AI ניצח'}
+            </Typography>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => { playSound('neon_click'); resetGame(); }}
+              sx={{ bgcolor: '#00f5d4', color: '#000', fontWeight: 'bold' }}
+            >
+              משחק חדש
+            </Button>
+          </MuiBox>
+        )}
+        {legalMoves.length > 0 && state.turn === 0 && winner === -1 && (
+          <MuiBox sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, justifyContent: 'center', mt: 1, maxWidth: 320 }}>
+            <Typography sx={{ width: '100%', color: '#aaa', fontSize: '0.75rem', textAlign: 'center' }}>
+              בחר מהלך:
+            </Typography>
+            {legalMoves.slice(0, 12).map((move, i) => (
+              <Button
+                key={i}
+                variant="outlined"
+                size="small"
+                onClick={() => handleApplyMove(move)}
+                sx={{
+                  borderColor: '#00f5d4',
+                  color: '#00f5d4',
+                  fontSize: '0.7rem',
+                  minWidth: 56,
+                  '&:hover': { borderColor: '#00f5d4', bgcolor: 'rgba(0,245,212,0.15)' },
+                }}
+              >
+                {move.from === 'bar' ? 'Bar' : move.from}→{move.to === 'off' ? 'Off' : move.to}
+              </Button>
+            ))}
+            {legalMoves.length > 12 && (
+              <Typography sx={{ color: '#888', fontSize: '0.7rem' }}>+{legalMoves.length - 12} עוד</Typography>
+            )}
+          </MuiBox>
+        )}
+        {legalMoves.length === 0 && state.dice !== null && state.turn === 0 && winner === -1 && (
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => {
+              playSound('neon_click');
+              const d1 = 1 + Math.floor(Math.random() * 6);
+              const d2 = 1 + Math.floor(Math.random() * 6);
+              setState((s) => ({ ...s, turn: 1, dice: [d1, d2], lastMoveAt: Date.now() }));
+            }}
+            sx={{
+              borderColor: '#ffd700',
+              color: '#ffd700',
+              mt: 1,
+              '&:hover': { borderColor: '#ffd700', bgcolor: 'rgba(255,215,0,0.1)' },
+            }}
+          >
+            אין מהלך — העבר תור
+          </Button>
+        )}
       </MuiBox>
 
       <ProvablyFairDialog
