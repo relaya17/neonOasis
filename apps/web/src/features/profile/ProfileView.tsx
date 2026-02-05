@@ -173,8 +173,23 @@ export function ProfileView() {
         flexDirection: 'column',
         alignItems: 'center',
         gap: 3,
+        position: 'relative',
+        backgroundImage: 'url(/images/cube.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
       }}
     >
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          bgcolor: 'rgba(0,0,0,0.5)',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
+      <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, width: '100%' }}>
       <Typography variant="h5" sx={{ color: 'primary.main' }}>
         {t('nav.me')}
       </Typography>
@@ -287,6 +302,7 @@ export function ProfileView() {
         <Link component={RouterLink} to="/responsible-gaming" sx={{ color: 'primary.main' }} aria-label={t('footer.responsible')}>
           {t('footer.responsible')}
         </Link>
+      </Box>
       </Box>
     </Box>
   );
