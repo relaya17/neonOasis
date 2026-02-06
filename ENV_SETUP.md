@@ -14,6 +14,11 @@ CORS_ORIGIN=http://localhost:5273
 VITE_API_URL=http://localhost:4000
 VITE_WS_URL=ws://localhost:4000
 VITE_SOCKET_URL=http://localhost:4000
+
+# וידאו מהענן (אופציונלי — אם לא מוגדר משתמשים בקבצים מ-public/images)
+# VITE_VIDEO_INTRO_URL=https://res.cloudinary.com/your-cloud/video/upload/xxx/all.mp4
+# VITE_VIDEO_POKER_INTRO_URL=https://res.cloudinary.com/your-cloud/video/upload/xxx/poker.mp4
+# VITE_VIDEO_BACKGAMMON_INTRO_URL=https://res.cloudinary.com/your-cloud/video/upload/xxx/play1.mp4
 ```
 
 ---

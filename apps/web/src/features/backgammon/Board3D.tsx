@@ -18,6 +18,8 @@ import { AIDealerOverlay } from '../game/AIDealerOverlay';
 import { useWalletStore } from '../store';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
+/** צבע כרטיס השש-בש בדף הבית — משמש לרקע ומסגרת */
+const NEON_CYAN = '#00f5d4';
 
 /** לוח שש-בש תלת-ממדי — תאורת ניאון, קוביות פיזיקליות, Stars ברקע */
 export function BackgammonBoard3D() {
@@ -166,7 +168,20 @@ export function BackgammonBoard3D() {
   };
 
   return (
-    <MuiBox sx={{ width: '100%', height: '100vh', bgcolor: '#000', position: 'relative' }}>
+    <MuiBox
+      sx={{
+        width: 'calc(100% - 24px)',
+        height: 'calc(100vh - 24px)',
+        maxWidth: 'calc(100vw - 24px)',
+        margin: 3,
+        position: 'relative',
+        bgcolor: 'rgba(26, 26, 26, 0.98)',
+        background: `radial-gradient(circle at 50% 50%, ${NEON_CYAN}12 0%, #0a0a0b 40%, #000 100%)`,
+        border: `4px solid ${NEON_CYAN}`,
+        borderRadius: 3,
+        boxShadow: `0 0 40px ${NEON_CYAN}40, inset 0 0 80px rgba(0,0,0,0.5)`,
+      }}
+    >
       {/* Compact Player Info - Mobile Responsive */}
       <MuiBox
         sx={{
@@ -264,8 +279,14 @@ export function BackgammonBoard3D() {
         </MuiBox>
       )}
       
-      <Canvas shadows camera={{ position: [0, 10, 10], fov: 50 }} onCreated={onCanvasCreated}>
-        <color attach="background" args={['#050505']} />
+      <Canvas
+        shadows
+        camera={{ position: [0, 10, 10], fov: 50 }}
+        onCreated={onCanvasCreated}
+        gl={{ alpha: true }}
+        style={{ background: 'transparent' }}
+      >
+        {/* רקע שקוף — הגרדיאנט של הכרטיס מהדף הבית נראה דרך ה־Canvas */}
         <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
 
         <ambientLight intensity={0.2} />

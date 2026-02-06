@@ -9,4 +9,5 @@ export { ResponsibleGamingPage } from './ResponsibleGamingPage';
 export { useAuthStore } from './store';
 export { useSessionStore } from './authStore';
 export { useConsentStore } from './consentStore';
+export { performFullLogout } from './performFullLogout';
 export { LoginView } from './LoginView';

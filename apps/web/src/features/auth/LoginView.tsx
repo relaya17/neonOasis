@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Box, Typography, TextField, Button, Paper, type SxProps, type Theme } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSessionStore } from './authStore';
 import { useWalletStore } from '../store';
@@ -10,6 +11,7 @@ const API_URL = import.meta.env.VITE_API_URL ?? '';
 
 export function LoginView() {
   const { t } = useTranslation('common');
+  const navigate = useNavigate();
   const apiOnline = useApiStatusStore((s) => s.online);
   const setUser = useSessionStore((s) => s.setUser);
   const setUserId = useWalletStore((s) => s.setUserId);
@@ -31,6 +33,7 @@ export function LoginView() {
         setUserId(data.userId);
         await fetchBalance(data.userId);
         setStatus('idle');
+        navigate('/', { replace: true });
         return;
       }
     } catch {
@@ -43,6 +46,7 @@ export function LoginView() {
     useWalletStore.getState().setBalance('0');
     setStatus('idle');
     setErrorMsg(''); // clear so we don't show "Network error" — offline is OK
+    navigate('/', { replace: true });
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -63,6 +67,7 @@ export function LoginView() {
         await fetchBalance(data.userId);
         await claimReferralIfPending(data.userId);
         setStatus('idle');
+        navigate('/', { replace: true });
       } else {
         setStatus('error');
         setErrorMsg(data.error ?? 'Failed');

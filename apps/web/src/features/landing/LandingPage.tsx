@@ -3,7 +3,7 @@
  * Login options + Game Selection
  */
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { Box, Button, Typography, Paper, Grid, Card, CardContent, CardActions } from '@mui/material';
 import { motion } from 'framer-motion';
@@ -14,9 +14,10 @@ import SportsIcon from '@mui/icons-material/Sports';
 import PersonIcon from '@mui/icons-material/Person';
 import LoginIcon from '@mui/icons-material/Login';
 import { useSessionStore } from '../auth/authStore';
-import { useConsentStore } from '../auth/consentStore';
+import { performFullLogout } from '../auth/performFullLogout';
 import { useWalletStore } from '../store';
 import { playSound } from '../../shared/audio';
+import { BACKGAMMON_INTRO_VIDEO_URL, POKER_INTRO_VIDEO_URL, SNOOKER_INTRO_VIDEO_URL, TOUCH_INTRO_VIDEO_URL, WELCOME_CHOICE_VIDEO_URL } from '../../config/videoUrls';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 const NEON_CYAN = '#00f5d4';
@@ -31,6 +32,9 @@ interface GameOption {
   route: string;
   color: string;
   available: boolean;
+  /** רקע הכרטיס — תמונה או וידאו (אם יש וידאו הוא יוצג במקום תמונה) */
+  cardBackgroundImage?: string;
+  cardBackgroundVideo?: string;
 }
 
 const games: GameOption[] = [
@@ -42,6 +46,8 @@ const games: GameOption[] = [
     route: '/backgammon',
     color: NEON_CYAN,
     available: true,
+    cardBackgroundImage: '/images/bord.png',
+    cardBackgroundVideo: BACKGAMMON_INTRO_VIDEO_URL,
   },
   {
     id: 'snooker',
@@ -51,6 +57,7 @@ const games: GameOption[] = [
     route: '/snooker',
     color: '#2e7d32',
     available: true,
+    ...(SNOOKER_INTRO_VIDEO_URL && { cardBackgroundVideo: SNOOKER_INTRO_VIDEO_URL }),
   },
   {
     id: 'touch',
@@ -60,6 +67,7 @@ const games: GameOption[] = [
     route: '/touch',
     color: NEON_GOLD,
     available: true,
+    ...(TOUCH_INTRO_VIDEO_URL && { cardBackgroundVideo: TOUCH_INTRO_VIDEO_URL }),
   },
   {
     id: 'poker',
@@ -69,16 +77,30 @@ const games: GameOption[] = [
     route: '/poker',
     color: NEON_PINK,
     available: true,
+    cardBackgroundImage: '/images/bord2.png',
+    cardBackgroundVideo: POKER_INTRO_VIDEO_URL,
   },
 ];
 
 export function LandingPage() {
   const [loggingIn, setLoggingIn] = useState(false);
+  /** וידאו אחרי בחירת אורח/לוגין — כמו בשש-בש */
+  const [showWelcomeVideo, setShowWelcomeVideo] = useState(false);
+  const [afterWelcomeVideoNavigateTo, setAfterWelcomeVideoNavigateTo] = useState<string | null>(null);
+  const [welcomeVideoError, setWelcomeVideoError] = useState(false);
+  const [welcomeVideoLoaded, setWelcomeVideoLoaded] = useState(false);
+  const welcomeVideoRef = useRef<HTMLVideoElement>(null);
   const navigate = useNavigate();
   const sessionUserId = useSessionStore((s) => s.userId);
   const setUser = useSessionStore((s) => s.setUser);
   const setUserId = useWalletStore((s) => s.setUserId);
   const fetchBalance = useWalletStore((s) => s.fetchBalance);
+
+  useEffect(() => {
+    if (showWelcomeVideo && welcomeVideoRef.current) {
+      welcomeVideoRef.current.play().catch(() => {});
+    }
+  }, [showWelcomeVideo]);
 
   const handleGuestLogin = async () => {
     setLoggingIn(true);
@@ -107,7 +129,25 @@ export function LandingPage() {
       useWalletStore.getState().setBalance('0');
     } finally {
       setLoggingIn(false);
+      setShowWelcomeVideo(true);
+      setAfterWelcomeVideoNavigateTo(null);
     }
+  };
+
+  const handleLoginClick = () => {
+    playSound('neon_click');
+    setShowWelcomeVideo(true);
+    setAfterWelcomeVideoNavigateTo('/login');
+  };
+
+  const handleWelcomeVideoContinue = () => {
+    playSound('neon_click');
+    const target = afterWelcomeVideoNavigateTo;
+    setShowWelcomeVideo(false);
+    setAfterWelcomeVideoNavigateTo(null);
+    setWelcomeVideoError(false);
+    setWelcomeVideoLoaded(false);
+    if (target) navigate(target);
   };
 
   const handleGameSelect = (game: GameOption) => {
@@ -131,6 +171,100 @@ export function LandingPage() {
         overflow: 'hidden',
       }}
     >
+      {/* וידאו אחרי בחירת אורח או לוגין — כמו בשש-בש */}
+      {showWelcomeVideo && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 99,
+            bgcolor: '#000',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <video
+            ref={welcomeVideoRef}
+            src={WELCOME_CHOICE_VIDEO_URL}
+            muted
+            playsInline
+            autoPlay
+            loop
+            onError={() => setWelcomeVideoError(true)}
+            onLoadedData={() => setWelcomeVideoLoaded(true)}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              opacity: welcomeVideoLoaded && !welcomeVideoError ? 1 : 0,
+              transform: 'scale(1.08, 0.9)', // רחב יותר לצדדים, גובה נוח
+            }}
+          />
+          {(welcomeVideoError || (!welcomeVideoLoaded && !welcomeVideoError)) && (
+            <Box
+              onClick={welcomeVideoError ? handleWelcomeVideoContinue : undefined}
+              sx={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 2,
+                p: 2,
+                cursor: welcomeVideoError ? 'pointer' : 'wait',
+              }}
+            >
+              {welcomeVideoError && (
+                <Typography sx={{ color: '#888', textAlign: 'center' }}>
+                  הווידאו לא נטען. לחץ להמשך.
+                </Typography>
+              )}
+              {!welcomeVideoLoaded && !welcomeVideoError && (
+                <Typography sx={{ color: '#666' }}>טוען וידאו...</Typography>
+              )}
+            </Box>
+          )}
+          <Box
+            sx={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              p: 2,
+              display: 'flex',
+              justifyContent: 'center',
+              background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
+            }}
+          >
+            <Button
+              variant="contained"
+              size="large"
+              onClick={handleWelcomeVideoContinue}
+              aria-label={afterWelcomeVideoNavigateTo ? 'המשך להתחברות' : 'כניסה לדף הבית'}
+              sx={{
+                bgcolor: NEON_GOLD,
+                color: '#000',
+                fontWeight: 'bold',
+                fontSize: '1.1rem',
+                px: 4,
+                py: 1.5,
+                '&:hover': { bgcolor: NEON_GOLD, opacity: 0.9 },
+              }}
+            >
+              {afterWelcomeVideoNavigateTo ? 'המשך להתחברות' : 'כניסה לדף הבית'}
+            </Button>
+          </Box>
+        </Box>
+      )}
+
       {/* Animated background effects */}
       <Box
         sx={{
@@ -231,7 +365,7 @@ export function LandingPage() {
                 size="large"
                 fullWidth
                 startIcon={<LoginIcon />}
-                onClick={() => navigate('/login')}
+                onClick={handleLoginClick}
                 sx={{
                   borderColor: NEON_PINK,
                   color: NEON_PINK,
@@ -285,15 +419,69 @@ export function LandingPage() {
                   cursor: game.available ? 'pointer' : 'not-allowed',
                   transition: 'all 0.3s',
                   opacity: game.available ? 1 : 0.5,
+                  overflow: 'hidden',
+                  position: 'relative',
                   '&:hover': game.available
                     ? {
                         boxShadow: `0 0 30px ${game.color}66`,
                         borderColor: game.color,
                       }
                     : {},
+                  /* רקע: וידאו או תמונה — וידאו דורס תמונה */
+                  ...((game.cardBackgroundVideo || game.cardBackgroundImage) && {
+                    '& .card-content-inner, & .MuiCardActions-root': {
+                      position: 'relative',
+                      zIndex: 1,
+                    },
+                    '& .card-content-inner': {
+                      textShadow: '0 0 8px rgba(0,0,0,0.9), 0 1px 3px #000',
+                    },
+                  }),
+                  ...(game.cardBackgroundImage && !game.cardBackgroundVideo && {
+                    backgroundImage: `url(${game.cardBackgroundImage})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.5) 40%, rgba(0,0,0,0.7) 100%)',
+                      pointerEvents: 'none',
+                      zIndex: 0,
+                    },
+                  }),
                 }}
               >
-                <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                {game.cardBackgroundVideo && (
+                  <>
+                    <Box
+                      component="video"
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        zIndex: 0,
+                      }}
+                      src={game.cardBackgroundVideo}
+                    />
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.5) 40%, rgba(0,0,0,0.7) 100%)',
+                        pointerEvents: 'none',
+                        zIndex: 0.5,
+                      }}
+                    />
+                  </>
+                )}
+                <CardContent sx={{ textAlign: 'center', py: 3 }} className="card-content-inner">
                   <Box sx={{ color: game.available ? game.color : '#666', mb: 2 }}>
                     {game.icon}
                   </Box>
@@ -357,11 +545,7 @@ export function LandingPage() {
       {/* Logout button if already logged in */}
       {sessionUserId && (
         <Button
-          onClick={() => {
-            useConsentStore.getState().resetConsent();
-            useSessionStore.getState().logout();
-            window.location.reload();
-          }}
+          onClick={() => performFullLogout()}
           sx={{
             position: 'absolute',
             top: 20,

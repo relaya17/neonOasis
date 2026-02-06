@@ -8,6 +8,7 @@ import { useApiStatusStore } from '../../shared/store/apiStatus';
 import { BackgammonBoard3D } from './Board3D';
 import { useAIDealer } from '../../shared/hooks';
 import { playSound, playVoice } from '../../shared/audio';
+import { BACKGAMMON_INTRO_VIDEO_URL } from '../../config/videoUrls';
 
 interface BoardContainerProps {
   tableId: string;
@@ -127,7 +128,7 @@ export function BoardContainer({ tableId, token: tokenProp }: BoardContainerProp
       >
         <video
           ref={introVideoRef}
-          src="https://res.cloudinary.com/dora8sxcb/video/upload/v1770403479/play1_jhkk1j.mp4"
+          src={BACKGAMMON_INTRO_VIDEO_URL}
           muted
           playsInline
           autoPlay
@@ -174,5 +175,37 @@ export function BoardContainer({ tableId, token: tokenProp }: BoardContainerProp
     );
   }
 
-  return <BackgammonBoard3D />;
+  /* רקע הלוח — וידאו בלבד (כתובת מ־videoUrls / .env) */
+  return (
+    <Box
+      sx={{
+        position: 'relative',
+        minHeight: '100vh',
+        bgcolor: '#000',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+      }}
+    >
+      <video
+        muted
+        playsInline
+        autoPlay
+        loop
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          zIndex: 0,
+        }}
+        src={BACKGAMMON_INTRO_VIDEO_URL}
+      />
+      <Box sx={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', minHeight: '100vh' }}>
+        <BackgammonBoard3D />
+      </Box>
+    </Box>
+  );
 }

@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import { createDeck, shuffleDeck, type Card } from './CardGame';
 import { evaluateHand, compareHands, HAND_NAMES_HE } from './pokerUtils';
 import { playSound, playVoice } from '../../shared/audio';
+import { POKER_INTRO_VIDEO_URL } from '../../config/videoUrls';
 
 const NEON_CYAN = '#00f5d4';
 const NEON_PINK = '#f72585';
@@ -153,7 +154,7 @@ export function PokerTable() {
       >
         <video
           ref={introVideoRef}
-          src="/images/poker..mp4"
+          src={POKER_INTRO_VIDEO_URL}
           muted
           playsInline
           autoPlay

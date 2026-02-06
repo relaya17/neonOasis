@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react';
-import { useRef, useEffect } from 'react';
-import { Box, Button } from '@mui/material';
+import { useRef, useEffect, useState } from 'react';
+import { Box, Button, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useConsentStore } from './consentStore';
 import { playSound } from '../../shared/audio';
+import { INTRO_VIDEO_URL } from '../../config/videoUrls';
 
 const NEON_GOLD = '#ffd700';
 
@@ -19,6 +20,8 @@ export function IntroVideoGate({ children }: IntroVideoGateProps) {
   const setIntroVideoSeen = useConsentStore((s) => s.setIntroVideoSeen);
   const introVideoRef = useRef<HTMLVideoElement>(null);
   const navigate = useNavigate();
+  const [videoError, setVideoError] = useState(false);
+  const [videoLoaded, setVideoLoaded] = useState(false);
 
   useEffect(() => {
     if (!introVideoSeen && introVideoRef.current) {
@@ -50,17 +53,46 @@ export function IntroVideoGate({ children }: IntroVideoGateProps) {
     >
       <video
         ref={introVideoRef}
-        src="/images/all.mp4"
+        src={INTRO_VIDEO_URL}
         muted
         playsInline
         autoPlay
         loop
+        onError={() => setVideoError(true)}
+        onLoadedData={() => setVideoLoaded(true)}
         style={{
           width: '100%',
           height: '100%',
           objectFit: 'cover',
+          opacity: videoLoaded && !videoError ? 1 : 0,
         }}
       />
+      {(videoError || (!videoLoaded && !videoError)) && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 2,
+            p: 2,
+          }}
+        >
+          {videoError && (
+            <Typography sx={{ color: '#888', textAlign: 'center' }}>
+              הווידאו לא נטען. לחץ להמשך.
+            </Typography>
+          )}
+          {!videoLoaded && !videoError && (
+            <Typography sx={{ color: '#666' }}>טוען וידאו...</Typography>
+          )}
+        </Box>
+      )}
       <Box
         sx={{
           position: 'absolute',

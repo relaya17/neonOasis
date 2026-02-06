@@ -26,7 +26,7 @@ pnpm -C apps/web run dev
 
 ### 3. פתיחת האפליקציה (Open App)
 ```
-Web: http://localhost:5173
+Web: http://localhost:5273
 API: http://localhost:4000
 ```
 
@@ -176,7 +176,7 @@ taskkill /PID <PID> /F
 pnpm run dev
 ```
 
-ופתח את `http://localhost:5173` בדפדפן.
+ופתח את `http://localhost:5273` בדפדפן.
 
 **בהצלחה! 🎮🎵✨**
 

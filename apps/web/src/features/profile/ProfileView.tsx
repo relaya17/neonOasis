@@ -6,7 +6,7 @@ import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'rec
 import { useWalletStore } from '../store';
 import { useApiStatusStore } from '../../shared/store/apiStatus';
 import { useSessionStore } from '../auth';
-import { useConsentStore } from '../auth/consentStore';
+import { performFullLogout } from '../auth/performFullLogout';
 import { playSound } from '../../shared/audio';
 import { hapticClick } from '../../shared/hooks';
 
@@ -60,12 +60,7 @@ export function ProfileView() {
   const setBalance = useWalletStore((s) => s.setBalance);
   const fetchProfile = useWalletStore((s) => s.fetchProfile);
   const username = useSessionStore((s) => s.username);
-  const logoutSession = useSessionStore((s) => s.logout);
-  const resetConsent = useConsentStore((s) => s.resetConsent);
-  const logout = () => {
-    resetConsent();
-    logoutSession();
-  };
+  const logout = () => performFullLogout();
   const apiOnline = useApiStatusStore((s) => s.online);
 
   useEffect(() => {
@@ -90,7 +85,10 @@ export function ProfileView() {
     setHistoryLoading(true);
     setHistoryError('');
     fetch(`${API_URL}/api/users/${userId}/transactions?days=30`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) return { history: [] };
+        return r.json();
+      })
       .then((data: { history?: { date: string; balance_delta: string }[] }) => {
         const h = data.history ?? [];
         const sorted = [...h].sort((a, b) => a.date.localeCompare(b.date));

@@ -5,7 +5,7 @@ const textPrimaryOnDark = '#e8e8e8';
 const textSecondaryOnDark = '#b0b0b0';
 
 /** Colors: Deep Space Black, Cyber Pink, Electric Blue */
-const DEEP_SPACE_BLACK = '#0a0a0b';
+const DEEP_SPACE_BLACK = '#0a0a0f';
 const CYBER_PINK = '#ff00ff';
 const ELECTRIC_BLUE = '#00ffff';
 

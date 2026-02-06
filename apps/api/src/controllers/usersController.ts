@@ -65,8 +65,8 @@ export async function getTransactionHistory(
   try {
     const { userId } = req.params;
     const days = Math.min(90, Math.max(1, parseInt(req.query.days ?? '30', 10) || 30));
-    if (!pool) return reply.status(503).send({ error: 'Database not configured' });
-    const result = await pool.query<{ date: string; balance_delta: string }>(
+    if (!hasDb()) return reply.send({ history: [] });
+    const result = await pool!.query<{ date: string; balance_delta: string }>(
       `SELECT date_trunc('day', created_at)::date::text AS date, SUM(amount)::text AS balance_delta
        FROM transactions WHERE user_id = $1 AND created_at >= now() - ($2 * interval '1 day')
        GROUP BY date_trunc('day', created_at) ORDER BY date`,

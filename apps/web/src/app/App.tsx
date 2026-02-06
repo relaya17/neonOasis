@@ -25,6 +25,7 @@ import { useTranslation } from 'react-i18next';
 import { RTL_LANGS } from '../i18n';
 import { preloadSounds, playVoice } from '../shared/audio';
 import { useApiStatus } from '../shared/hooks';
+import { socketService } from '../api/socketService';
 
 const routes = [
   { path: '/', element: <LandingPage />, fullHeight: true },
@@ -54,6 +55,17 @@ export function App() {
   const muiTheme = getTheme(isRtl ? 'rtl' : 'ltr');
 
   useApiStatus();
+
+  // ניתוק Socket כשהמשתמש סוגר את הדף / עוזב (טאב, רענון, ניווט החוצה)
+  useEffect(() => {
+    const disconnectOnLeave = () => socketService.disconnect();
+    window.addEventListener('pagehide', disconnectOnLeave);
+    window.addEventListener('beforeunload', disconnectOnLeave);
+    return () => {
+      window.removeEventListener('pagehide', disconnectOnLeave);
+      window.removeEventListener('beforeunload', disconnectOnLeave);
+    };
+  }, []);
 
   useEffect(() => {
     const main = setTimeout(() => {
@@ -130,6 +142,7 @@ export function App() {
             <Route path="/tournaments" element={<Layout><TournamentListView /></Layout>} />
             <Route path="/tournaments/:id" element={<Layout><TournamentDetailView /></Layout>} />
             <Route path="/admin" element={<Layout><AdminGuard><AdminDashboard /></AdminGuard></Layout>} />
+            <Route path="/login" element={<LoginView />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/responsible-gaming" element={<ResponsibleGamingPage />} />
