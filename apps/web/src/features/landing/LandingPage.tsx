@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import CasinoIcon from '@mui/icons-material/Casino';
 import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
 import StyleIcon from '@mui/icons-material/Style';
+import SportsIcon from '@mui/icons-material/Sports';
 import PersonIcon from '@mui/icons-material/Person';
 import LoginIcon from '@mui/icons-material/Login';
 import { useSessionStore } from '../auth/authStore';
@@ -40,6 +41,15 @@ const games: GameOption[] = [
     icon: <CasinoIcon sx={{ fontSize: { xs: 40, sm: 60 } }} />,
     route: '/backgammon',
     color: NEON_CYAN,
+    available: true,
+  },
+  {
+    id: 'snooker',
+    name: 'Snooker',
+    nameHe: 'סנוקר',
+    icon: <SportsIcon sx={{ fontSize: { xs: 40, sm: 60 } }} />,
+    route: '/snooker',
+    color: '#2e7d32',
     available: true,
   },
   {

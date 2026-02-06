@@ -11,13 +11,14 @@ import { VegasFeed } from '../features/feed';
 import { LandingPage } from '../features/landing';
 import { StoreView } from '../features/store';
 import { BoardContainer } from '../features/backgammon';
+import { SnookerGame } from '../features/snooker';
 import { TouchCardGame, SimplePoker, PokerTable } from '../features/cards';
 import { AdminDashboard, AdminGuard } from '../features/admin';
 import { ProfileView } from '../features/profile';
 import { LeaderboardView } from '../features/leaderboard';
 import { TournamentListView, TournamentDetailView } from '../features/tournament';
 import { SyncProvider } from '../features/sync';
-import { ConsentGate, GuardianGate, TermsPage, PrivacyPage, ResponsibleGamingPage, useSessionStore, LoginView } from '../features/auth';
+import { ConsentGate, GuardianGate, IntroVideoGate, TermsPage, PrivacyPage, ResponsibleGamingPage, useSessionStore, LoginView } from '../features/auth';
 import { getPendingReferralInviterId } from '../features/auth/referralRef';
 import { Layout, SplashScreen } from '../components';
 import { useTranslation } from 'react-i18next';
@@ -29,6 +30,7 @@ const routes = [
   { path: '/', element: <LandingPage />, fullHeight: true },
   { path: '/feed', element: <VegasFeed />, fullHeight: true },
   { path: '/backgammon', element: <BoardContainer tableId="main" />, fullHeight: true },
+  { path: '/snooker', element: <SnookerGame />, fullHeight: true },
   { path: '/cards', element: <TouchCardGame />, fullHeight: true },
   { path: '/touch', element: <TouchCardGame />, fullHeight: true },
   { path: '/store', element: <StoreView />, fullHeight: false },
@@ -109,6 +111,7 @@ export function App() {
         <CssBaseline />
         <ConsentGate>
         <GuardianGate>
+        <IntroVideoGate>
         <SyncProvider>
           <Routes>
             {/* Landing page without Layout */}
@@ -117,6 +120,7 @@ export function App() {
             {/* All other pages with Layout */}
             <Route path="/feed" element={<Layout><VegasFeed /></Layout>} />
             <Route path="/backgammon" element={<Layout><BoardContainer tableId="main" /></Layout>} />
+            <Route path="/snooker" element={<Layout><SnookerGame /></Layout>} />
             <Route path="/cards" element={<Layout><TouchCardGame /></Layout>} />
             <Route path="/touch" element={<Layout><TouchCardGame /></Layout>} />
             <Route path="/poker" element={<Layout><PokerTable /></Layout>} />
@@ -131,6 +135,7 @@ export function App() {
             <Route path="/responsible-gaming" element={<ResponsibleGamingPage />} />
           </Routes>
         </SyncProvider>
+        </IntroVideoGate>
         </GuardianGate>
       </ConsentGate>
       </CacheProvider>

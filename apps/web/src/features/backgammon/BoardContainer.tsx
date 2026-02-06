@@ -127,7 +127,7 @@ export function BoardContainer({ tableId, token: tokenProp }: BoardContainerProp
       >
         <video
           ref={introVideoRef}
-          src="/images/play1.mp4.mp4"
+          src="https://res.cloudinary.com/dora8sxcb/video/upload/v1770403479/play1_jhkk1j.mp4"
           muted
           playsInline
           autoPlay

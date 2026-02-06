@@ -469,7 +469,7 @@ export function BackgammonBoard3D() {
   );
 }
 
-/** לוח שש-בש מעוצב - 24 נקודות (משולשים), כלים, פס מרכזי */
+/** לוח שש-בש מעוצב - 24 נקודות (משולשים), כלים, פס מרכזי — מראה פרימיום ניאון */
 function BoardPlane() {
   const { state } = useBackgammonStore();
   const [ref] = usePlane(() => ({
@@ -478,64 +478,67 @@ function BoardPlane() {
     rotation: [-Math.PI / 2, 0, 0],
   }));
 
-  // Board dimensions
-  const BOARD_WIDTH = 12;
-  const BOARD_HEIGHT = 16;
-  const POINT_WIDTH = 0.8;
-  const POINT_HEIGHT = 3;
-  const CHECKER_RADIUS = 0.35;
-  const CHECKER_HEIGHT = 0.15;
+  // Board dimensions - balanced proportions
+  const BOARD_WIDTH = 14;
+  const BOARD_HEIGHT = 18;
+  const FRAME_THICKNESS = 0.25;
+  const POINT_WIDTH = 0.85;
+  const POINT_HEIGHT = 2.6;
+  const CHECKER_RADIUS = 0.38;
+  const CHECKER_HEIGHT = 0.18;
 
-  // Backgammon board layout: 24 points in proper quadrants
-  // Points 0-11: bottom-right to bottom-left, then top-left to top-right
-  // Points 12-23: continue top-left to top-right
+  // Classic premium: dark green felt + cream/ivory points (alternating)
+  const FELT_COLOR = '#0c2818';
+  const POINT_LIGHT = '#e8ddc8';
+  const POINT_DARK = '#b8956e';
+  const FRAME_NEON = '#00f5d4';
+  const BAR_COLOR = '#1a1a1a';
+  const BAR_EMISSIVE = '#ffd700';
+
+  const getPointPosition = (pointIndex: number) => {
+    let quadrant: number, localIdx: number;
+    if (pointIndex <= 5) {
+      quadrant = 0;
+      localIdx = pointIndex;
+    } else if (pointIndex <= 11) {
+      quadrant = 1;
+      localIdx = pointIndex - 6;
+    } else if (pointIndex <= 17) {
+      quadrant = 2;
+      localIdx = pointIndex - 12;
+    } else {
+      quadrant = 3;
+      localIdx = pointIndex - 18;
+    }
+    const isBottom = quadrant === 0 || quadrant === 1;
+    const isRight = quadrant === 0 || quadrant === 3;
+    const xBase = isRight ? 1.2 : -7.2;
+    const x = xBase + (isRight ? localIdx : (5 - localIdx)) * 1.02;
+    const z = isBottom ? 6.2 : -6.2;
+    return { x, z, isBottom, isRight };
+  };
+
   const renderPoints = () => {
-    const points = [];
-    const colors = ['#8B4513', '#D2691E']; // Brown/tan alternating
+    const points: JSX.Element[] = [];
+    const colors = [POINT_LIGHT, POINT_DARK];
 
     for (let i = 0; i < 24; i++) {
-      // Determine quadrant and position
-      let quadrant, localIdx;
-      if (i >= 0 && i <= 5) {
-        quadrant = 0; // Bottom-right
-        localIdx = i;
-      } else if (i >= 6 && i <= 11) {
-        quadrant = 1; // Bottom-left  
-        localIdx = i - 6;
-      } else if (i >= 12 && i <= 17) {
-        quadrant = 2; // Top-left
-        localIdx = i - 12;
-      } else {
-        quadrant = 3; // Top-right
-        localIdx = i - 18;
-      }
-
-      const isBottom = quadrant === 0 || quadrant === 1;
-      const isRight = quadrant === 0 || quadrant === 3;
-      
-      // Calculate x position (with gap in middle for bar)
-      const xBase = isRight ? 1 : -6.5;
-      const x = xBase + (isRight ? localIdx : (5 - localIdx)) * 0.9;
-      
-      // Calculate z position
-      const z = isBottom ? 5.5 : -5.5;
-      
-      // Triangle points down from top, up from bottom
+      const { x, z, isBottom } = getPointPosition(i);
       const rotation = isBottom ? 0 : Math.PI;
       const color = colors[i % 2];
 
       points.push(
         <mesh
           key={`point-${i}`}
-          position={[x, 0.01, z]}
+          position={[x, 0.02, z]}
           rotation={[-Math.PI / 2, 0, rotation]}
+          castShadow
         >
-          <coneGeometry args={[POINT_WIDTH / 2, POINT_HEIGHT, 3]} />
+          <coneGeometry args={[POINT_WIDTH / 2, POINT_HEIGHT, 4]} />
           <meshStandardMaterial
-            // @ts-ignore
             color={color}
-            roughness={0.6}
-            metalness={0.2}
+            roughness={0.5}
+            metalness={0.15}
           />
         </mesh>
       );
@@ -543,70 +546,43 @@ function BoardPlane() {
     return points;
   };
 
-  // Render checkers based on game state
   const renderCheckers = () => {
     const checkers: JSX.Element[] = [];
-    const COLORS = ['#00f5d4', '#f72585']; // Cyan for player 0, Pink for player 1
+    const COLORS = ['#00f5d4', '#f72585'];
 
     state.board.forEach((count, pointIndex) => {
       if (count === 0) return;
-
       const player = count > 0 ? 0 : 1;
       const numCheckers = Math.abs(count);
-      
-      // Match point positioning from renderPoints
-      let quadrant, localIdx;
-      if (pointIndex >= 0 && pointIndex <= 5) {
-        quadrant = 0;
-        localIdx = pointIndex;
-      } else if (pointIndex >= 6 && pointIndex <= 11) {
-        quadrant = 1;
-        localIdx = pointIndex - 6;
-      } else if (pointIndex >= 12 && pointIndex <= 17) {
-        quadrant = 2;
-        localIdx = pointIndex - 12;
-      } else {
-        quadrant = 3;
-        localIdx = pointIndex - 18;
-      }
+      const { x, z, isBottom } = getPointPosition(pointIndex);
 
-      const isBottom = quadrant === 0 || quadrant === 1;
-      const isRight = quadrant === 0 || quadrant === 3;
-      
-      const xBase = isRight ? 1 : -6.5;
-      const x = xBase + (isRight ? localIdx : (5 - localIdx)) * 0.9;
-      
-      // Stack checkers from the point
       for (let i = 0; i < numCheckers; i++) {
-        const z = isBottom ? 5.5 - i * CHECKER_HEIGHT * 3 : -5.5 + i * CHECKER_HEIGHT * 3;
-        const y = 0.08 + i * CHECKER_HEIGHT * 2.5;
+        const zOff = isBottom ? -i * CHECKER_HEIGHT * 2.6 : i * CHECKER_HEIGHT * 2.6;
+        const y = 0.06 + i * CHECKER_HEIGHT * 2.2;
 
         checkers.push(
-          <mesh
-            key={`checker-${pointIndex}-${i}`}
-            position={[x, y, z]}
-            castShadow
-          >
-            <cylinderGeometry args={[CHECKER_RADIUS, CHECKER_RADIUS, CHECKER_HEIGHT, 16]} />
+          <mesh key={`checker-${pointIndex}-${i}`} position={[x, y, z + zOff * 0.5]} castShadow>
+            <cylinderGeometry args={[CHECKER_RADIUS, CHECKER_RADIUS * 0.98, CHECKER_HEIGHT, 24]} />
             <meshStandardMaterial
-              // @ts-ignore
               color={COLORS[player]}
               emissive={COLORS[player]}
-              emissiveIntensity={0.4}
-              roughness={0.3}
-              metalness={0.7}
+              emissiveIntensity={0.5}
+              roughness={0.25}
+              metalness={0.75}
             />
           </mesh>
         );
       }
     });
-
     return checkers;
   };
 
+  const h = BOARD_HEIGHT / 2;
+  const w = BOARD_WIDTH / 2;
+
   return (
     <group>
-      {/* Main board surface - Wood texture */}
+      {/* Main board surface - premium dark felt */}
       <mesh
         ref={ref as React.RefObject<Mesh>}
         rotation={[-Math.PI / 2, 0, 0]}
@@ -615,57 +591,59 @@ function BoardPlane() {
       >
         <planeGeometry args={[BOARD_WIDTH, BOARD_HEIGHT]} />
         <meshStandardMaterial
-          // @ts-ignore
-          color="#2d1810"
-          roughness={0.8}
-          metalness={0.1}
+          color={FELT_COLOR}
+          roughness={0.85}
+          metalness={0.05}
         />
       </mesh>
 
-      {/* Border frame - Neon glow */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-        <ringGeometry args={[BOARD_WIDTH / 2 - 0.1, BOARD_WIDTH / 2, 32]} />
-        <meshStandardMaterial
-          // @ts-ignore
-          color="#00f5d4"
-          emissive="#00f5d4"
-          emissiveIntensity={0.8}
-        />
-      </mesh>
+      {/* Rectangular neon frame */}
+      {[
+        [0, -h - FRAME_THICKNESS / 2, BOARD_WIDTH + FRAME_THICKNESS * 2, FRAME_THICKNESS],
+        [0, h + FRAME_THICKNESS / 2, BOARD_WIDTH + FRAME_THICKNESS * 2, FRAME_THICKNESS],
+        [-w - FRAME_THICKNESS / 2, 0, FRAME_THICKNESS, BOARD_HEIGHT + FRAME_THICKNESS * 2],
+        [w + FRAME_THICKNESS / 2, 0, FRAME_THICKNESS, BOARD_HEIGHT + FRAME_THICKNESS * 2],
+      ].map(([px, pz, fw, fh], i) => (
+        <mesh key={`frame-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[px, 0.015, pz]}>
+          <planeGeometry args={[fw, fh]} />
+          <meshStandardMaterial
+            color={FRAME_NEON}
+            emissive={FRAME_NEON}
+            emissiveIntensity={0.6}
+            roughness={0.3}
+            metalness={0.5}
+          />
+        </mesh>
+      ))}
 
-      {/* Center bar (divider) */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
-        <planeGeometry args={[0.8, BOARD_HEIGHT]} />
+      {/* Center bar */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 0]}>
+        <planeGeometry args={[1, BOARD_HEIGHT]} />
         <meshStandardMaterial
-          // @ts-ignore
-          color="#000000"
-          emissive="#ffd700"
-          emissiveIntensity={0.3}
+          color={BAR_COLOR}
+          emissive={BAR_EMISSIVE}
+          emissiveIntensity={0.25}
           roughness={0.2}
           metalness={0.9}
         />
       </mesh>
 
-      {/* 24 Points (triangles) */}
       {renderPoints()}
-
-      {/* Checkers */}
       {renderCheckers()}
 
-      {/* Corner decorations - Vegas style */}
+      {/* Corner accents */}
       {[
-        [-5.5, -7.5],
-        [5.5, -7.5],
-        [-5.5, 7.5],
-        [5.5, 7.5],
+        [-w - 0.15, -h - 0.15],
+        [w + 0.15, -h - 0.15],
+        [-w - 0.15, h + 0.15],
+        [w + 0.15, h + 0.15],
       ].map(([x, z], i) => (
         <mesh key={`corner-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[x, 0.03, z]}>
-          <circleGeometry args={[0.3, 16]} />
+          <circleGeometry args={[0.35, 20]} />
           <meshStandardMaterial
-            // @ts-ignore
             color={i % 2 === 0 ? '#00f5d4' : '#f72585'}
             emissive={i % 2 === 0 ? '#00f5d4' : '#f72585'}
-            emissiveIntensity={0.8}
+            emissiveIntensity={0.5}
           />
         </mesh>
       ))}
