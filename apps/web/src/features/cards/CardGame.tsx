@@ -192,7 +192,11 @@ export function TouchCardGame() {
       next[foundIndex] = [...next[foundIndex], srcCard];
       return next;
     });
-    removeCardFromSource(selected, 1);
+    if (selected.type === 'tableau') {
+      setTableau((prev) => prev.map((p, i) => (i === selected.pileIndex ? p.slice(0, selected.cardIndex) : p)));
+    } else {
+      setFoundation((prev) => prev.map((p, i) => (i === selected.pileIndex ? p.slice(0, -1) : p)));
+    }
     setSelected(null);
   };
 
@@ -202,7 +206,7 @@ export function TouchCardGame() {
       const srcCard = getCard(selected);
       if (srcCard?.rank === 'K') {
         playSound('chip_stack');
-        moveCardsToTableau(selected, pileIndex, 1);
+        moveCardsToTableau(selected, pileIndex);
         setSelected(null);
       }
     }
@@ -290,10 +294,10 @@ export function TouchCardGame() {
         {foundation.map((pile, i) => (
           <Box
             key={`foundation-${i}`}
-            onClick={(e) => { e.stopPropagation(); handleFoundationClick(i); }}
+            onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleFoundationClick(i); }}
             role="button"
             tabIndex={0}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleFoundationClick(i); } }}
+            onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleFoundationClick(i); } }}
             sx={{
               width: { xs: 50, sm: 70, md: 80 },
               height: { xs: 70, sm: 98, md: 112 },
@@ -382,7 +386,7 @@ export function TouchCardGame() {
                 }}
               >
                 <Paper
-                  onClick={(e) => {
+                  onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();
                     handleCardClick(card, 'tableau', pileIndex, cardIndex);
                   }}

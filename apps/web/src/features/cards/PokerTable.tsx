@@ -135,14 +135,17 @@ export function PokerTable() {
     return evaluateHand([...playerHand, ...communityCards.filter((c) => c.faceUp)]);
   }, [playerHand, communityCards]);
 
-  /* כניסה לפוקר — דף מלא וידאו, נדלק מיד, אחריו כניסה לשולחן */
+  /* כניסה לפוקר — וידאו עם הדר גלוי (מתחת ל-AppBar) */
   if (showIntroVideo) {
     return (
       <Box
         sx={{
           position: 'fixed',
-          inset: 0,
-          zIndex: 9999,
+          top: 56,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 999,
           bgcolor: '#000',
           display: 'flex',
           flexDirection: 'column',
@@ -150,7 +153,7 @@ export function PokerTable() {
       >
         <video
           ref={introVideoRef}
-          src="/images/play1.mp4.mp4"
+          src="/images/poker..mp4"
           muted
           playsInline
           autoPlay

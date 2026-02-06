@@ -13,6 +13,7 @@ import StyleIcon from '@mui/icons-material/Style';
 import PersonIcon from '@mui/icons-material/Person';
 import LoginIcon from '@mui/icons-material/Login';
 import { useSessionStore } from '../auth/authStore';
+import { useConsentStore } from '../auth/consentStore';
 import { useWalletStore } from '../store';
 import { playSound } from '../../shared/audio';
 
@@ -347,6 +348,7 @@ export function LandingPage() {
       {sessionUserId && (
         <Button
           onClick={() => {
+            useConsentStore.getState().resetConsent();
             useSessionStore.getState().logout();
             window.location.reload();
           }}

@@ -3,6 +3,9 @@ import { persist } from 'zustand/middleware';
 
 const CONSENT_KEY = 'neon-oasis-consent';
 
+/** sessionStorage: בכל פתיחת דפדפן/טאב חדש — תקנון + אימות גיל יוצגו מחדש */
+const consentStorage = typeof window !== 'undefined' ? window.sessionStorage : undefined;
+
 interface ConsentState {
   termsAccepted: boolean;
   acceptedAt: number | null;
@@ -10,6 +13,8 @@ interface ConsentState {
   ageVerified: boolean;
   acceptConsent: () => void;
   setAgeVerified: (verified: boolean) => void;
+  /** איפוס אחרי יציאה — כדי שהשערים יוצגו שוב בכניסה הבאה */
+  resetConsent: () => void;
 }
 
 export const useConsentStore = create<ConsentState>()(
@@ -20,7 +25,8 @@ export const useConsentStore = create<ConsentState>()(
       ageVerified: false,
       acceptConsent: () => set({ termsAccepted: true, acceptedAt: Date.now() }),
       setAgeVerified: (verified) => set({ ageVerified: verified }),
+      resetConsent: () => set({ termsAccepted: false, acceptedAt: null, ageVerified: false }),
     }),
-    { name: CONSENT_KEY }
+    { name: CONSENT_KEY, storage: consentStorage ? { getItem: (n) => consentStorage.getItem(n), setItem: (n, v) => consentStorage.setItem(n, v), removeItem: (n) => consentStorage.removeItem(n) } : undefined }
   )
 );

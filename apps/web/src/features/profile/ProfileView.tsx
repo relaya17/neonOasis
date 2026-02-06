@@ -6,6 +6,7 @@ import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'rec
 import { useWalletStore } from '../store';
 import { useApiStatusStore } from '../../shared/store/apiStatus';
 import { useSessionStore } from '../auth';
+import { useConsentStore } from '../auth/consentStore';
 import { playSound } from '../../shared/audio';
 import { hapticClick } from '../../shared/hooks';
 
@@ -59,7 +60,12 @@ export function ProfileView() {
   const setBalance = useWalletStore((s) => s.setBalance);
   const fetchProfile = useWalletStore((s) => s.fetchProfile);
   const username = useSessionStore((s) => s.username);
-  const logout = useSessionStore((s) => s.logout);
+  const logoutSession = useSessionStore((s) => s.logout);
+  const resetConsent = useConsentStore((s) => s.resetConsent);
+  const logout = () => {
+    resetConsent();
+    logoutSession();
+  };
   const apiOnline = useApiStatusStore((s) => s.online);
 
   useEffect(() => {

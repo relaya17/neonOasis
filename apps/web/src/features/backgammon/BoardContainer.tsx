@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Box, Button } from '@mui/material';
 import { socketService } from '../../api/socketService';
 import type { BackgammonState } from '@neon-oasis/shared';
 import { useBackgammonStore } from './store';
@@ -17,6 +18,8 @@ interface BoardContainerProps {
 /**
  * "דבק" השש-בש: מתחבר ל-Socket עם userId אמיתי, נכנס לשולחן, מקשיב לעדכונים.
  */
+const NEON_GOLD = '#ffd700';
+
 export function BoardContainer({ tableId, token: tokenProp }: BoardContainerProps) {
   const userId = useWalletStore((s) => s.userId);
   const token = tokenProp ?? userId ?? 'user-verified-token';
@@ -24,6 +27,14 @@ export function BoardContainer({ tableId, token: tokenProp }: BoardContainerProp
   const apiOnline = useApiStatusStore((s) => s.online);
   const { triggerMove } = useAIDealer();
   const lastMoveAtRef = useRef<number | null>(null);
+  const [showIntroVideo, setShowIntroVideo] = useState(true);
+  const introVideoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (showIntroVideo && introVideoRef.current) {
+      introVideoRef.current.play().catch(() => {});
+    }
+  }, [showIntroVideo]);
 
   useEffect(() => {
     let mounted = true;
@@ -97,6 +108,71 @@ export function BoardContainer({ tableId, token: tokenProp }: BoardContainerProp
       cleanup();
     };
   }, [apiOnline, tableId, token, setState]);
+
+  /* כניסה לשש-בש — וידאו עם הדר גלוי (מתחת ל-AppBar) */
+  if (showIntroVideo) {
+    return (
+      <Box
+        sx={{
+          position: 'fixed',
+          top: 56,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 999,
+          bgcolor: '#000',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <video
+          ref={introVideoRef}
+          src="/images/play1.mp4.mp4"
+          muted
+          playsInline
+          autoPlay
+          loop
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+          }}
+        />
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            p: 2,
+            display: 'flex',
+            justifyContent: 'center',
+            background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
+          }}
+        >
+          <Button
+            variant="contained"
+            size="large"
+            onClick={() => {
+              playSound('neon_click');
+              setShowIntroVideo(false);
+            }}
+            sx={{
+              bgcolor: NEON_GOLD,
+              color: '#000',
+              fontWeight: 'bold',
+              fontSize: '1.1rem',
+              px: 4,
+              py: 1.5,
+              '&:hover': { bgcolor: NEON_GOLD, opacity: 0.9 },
+            }}
+          >
+            כניסה ללוח
+          </Button>
+        </Box>
+      </Box>
+    );
+  }
 
   return <BackgammonBoard3D />;
 }

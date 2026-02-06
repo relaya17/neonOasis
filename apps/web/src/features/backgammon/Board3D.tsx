@@ -7,7 +7,7 @@ import type { Mesh } from 'three';
 import { Dice } from './Dice';
 import { useBackgammonStore } from './store';
 import { getLegalMoves, applyMove, getWinner } from '@neon-oasis/shared';
-import type { BackgammonMove } from '@neon-oasis/shared';
+import type { BackgammonMove, BackgammonState } from '@neon-oasis/shared';
 import { socketService } from '../../api/socketService';
 import { hapticLand, hapticClick, useWebGLContextLoss, useAIDealer } from '../../shared/hooks';
 import { playSound } from '../../shared/audio';
@@ -82,7 +82,7 @@ export function BackgammonBoard3D() {
     })
       .then(async (res) => (res.ok ? res.json() : Promise.reject(new Error('roll failed'))))
       .then((data: { dice: [number, number] }) => {
-        setState((s) => ({ ...s, dice: data.dice, lastMoveAt: Date.now() }));
+        setState((s: BackgammonState) => ({ ...s, dice: data.dice, lastMoveAt: Date.now() }));
         setTimeout(() => {
           setRolling(false);
           hapticLand();
@@ -92,7 +92,7 @@ export function BackgammonBoard3D() {
       .catch(() => {
         const d1 = 1 + Math.floor(Math.random() * 6);
         const d2 = 1 + Math.floor(Math.random() * 6);
-        setState((s) => ({ ...s, dice: [d1, d2], lastMoveAt: Date.now() }));
+        setState((s: BackgammonState) => ({ ...s, dice: [d1, d2], lastMoveAt: Date.now() }));
         setTimeout(() => {
           setRolling(false);
           hapticLand();
@@ -116,13 +116,13 @@ export function BackgammonBoard3D() {
     const aiMoves = getLegalMoves(state);
     if (aiMoves.length === 0) {
       aiTurnDoneRef.current = true;
-      setState((s) => ({ ...s, dice: null, turn: 0 }));
+      setState((s: BackgammonState) => ({ ...s, dice: null, turn: 0 }));
       return;
     }
     const t = setTimeout(() => {
       aiTurnDoneRef.current = true;
       const move = aiMoves[0];
-      setState((s) => {
+      setState((s: BackgammonState) => {
         const next = applyMove(s, move);
         return next ? { ...next, dice: null, turn: 0 } : s;
       });
@@ -139,7 +139,7 @@ export function BackgammonBoard3D() {
       dice: null,
       turn: (state.turn === 0 ? 1 : 0) as 0 | 1,
     });
-    socketService.socket?.connected && socketService.sendMove('main', move);
+    socketService.socket?.connected && socketService.sendMove('main', { from: move.from, to: move.to });
   };
 
   const handleReveal = () => {
@@ -402,7 +402,7 @@ export function BackgammonBoard3D() {
               playSound('neon_click');
               const d1 = 1 + Math.floor(Math.random() * 6);
               const d2 = 1 + Math.floor(Math.random() * 6);
-              setState((s) => ({ ...s, turn: 1, dice: [d1, d2], lastMoveAt: Date.now() }));
+              setState((s: BackgammonState) => ({ ...s, turn: 1, dice: [d1, d2], lastMoveAt: Date.now() }));
             }}
             sx={{
               borderColor: '#ffd700',

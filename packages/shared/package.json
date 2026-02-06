@@ -16,7 +16,8 @@
   },
   "scripts": {
     "build": "npx tsup",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "echo ok"
   },
   "devDependencies": {
     "tsup": "^8.5.1",

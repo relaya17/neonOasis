@@ -28,6 +28,20 @@ export default defineConfig({
       '@neon-oasis/shared': path.resolve(__dirname, '../../packages/shared/src/index.ts'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('three') || id.includes('@react-three') || id.includes('cannon-es')) return 'vendor-three';
+          }
+        },
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash][extname]',
+      },
+    },
+    chunkSizeWarningLimit: 1600,
+  },
   optimizeDeps: {
     include: ['@neon-oasis/shared'],
   },
