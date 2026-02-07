@@ -557,9 +557,7 @@ function BoardPlane() {
         >
           <coneGeometry args={[POINT_WIDTH / 2, POINT_HEIGHT, 4]} />
           <meshStandardMaterial
-            color={color}
-            roughness={0.5}
-            metalness={0.15}
+            {...({ color, roughness: 0.5, metalness: 0.15 } as any)}
           />
         </mesh>
       );
@@ -585,11 +583,13 @@ function BoardPlane() {
           <mesh key={`checker-${pointIndex}-${i}`} position={[x, y, z + zOff * 0.5]} castShadow>
             <cylinderGeometry args={[CHECKER_RADIUS, CHECKER_RADIUS * 0.98, CHECKER_HEIGHT, 24]} />
             <meshStandardMaterial
-              color={COLORS[player]}
-              emissive={COLORS[player]}
-              emissiveIntensity={0.5}
-              roughness={0.25}
-              metalness={0.75}
+              {...({
+                color: COLORS[player],
+                emissive: COLORS[player],
+                emissiveIntensity: 0.5,
+                roughness: 0.25,
+                metalness: 0.75,
+              } as any)}
             />
           </mesh>
         );
@@ -612,9 +612,7 @@ function BoardPlane() {
       >
         <planeGeometry args={[BOARD_WIDTH, BOARD_HEIGHT]} />
         <meshStandardMaterial
-          color={FELT_COLOR}
-          roughness={0.85}
-          metalness={0.05}
+          {...({ color: FELT_COLOR, roughness: 0.85, metalness: 0.05 } as any)}
         />
       </mesh>
 
@@ -628,11 +626,13 @@ function BoardPlane() {
         <mesh key={`frame-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[px, 0.015, pz]}>
           <planeGeometry args={[fw, fh]} />
           <meshStandardMaterial
-            color={FRAME_NEON}
-            emissive={FRAME_NEON}
-            emissiveIntensity={0.6}
-            roughness={0.3}
-            metalness={0.5}
+            {...({
+              color: FRAME_NEON,
+              emissive: FRAME_NEON,
+              emissiveIntensity: 0.6,
+              roughness: 0.3,
+              metalness: 0.5,
+            } as any)}
           />
         </mesh>
       ))}
@@ -641,11 +641,13 @@ function BoardPlane() {
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 0]}>
         <planeGeometry args={[1, BOARD_HEIGHT]} />
         <meshStandardMaterial
-          color={BAR_COLOR}
-          emissive={BAR_EMISSIVE}
-          emissiveIntensity={0.25}
-          roughness={0.2}
-          metalness={0.9}
+          {...({
+            color: BAR_COLOR,
+            emissive: BAR_EMISSIVE,
+            emissiveIntensity: 0.25,
+            roughness: 0.2,
+            metalness: 0.9,
+          } as any)}
         />
       </mesh>
 
@@ -662,9 +664,11 @@ function BoardPlane() {
         <mesh key={`corner-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[x, 0.03, z]}>
           <circleGeometry args={[0.35, 20]} />
           <meshStandardMaterial
-            color={i % 2 === 0 ? '#00f5d4' : '#f72585'}
-            emissive={i % 2 === 0 ? '#00f5d4' : '#f72585'}
-            emissiveIntensity={0.5}
+            {...({
+              color: i % 2 === 0 ? '#00f5d4' : '#f72585',
+              emissive: i % 2 === 0 ? '#00f5d4' : '#f72585',
+              emissiveIntensity: 0.5,
+            } as any)}
           />
         </mesh>
       ))}

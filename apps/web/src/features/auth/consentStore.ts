@@ -1,10 +1,24 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, type PersistStorage, type StorageValue } from 'zustand/middleware';
 
 const CONSENT_KEY = 'neon-oasis-consent';
 
 /** sessionStorage: בכל פתיחת דפדפן/טאב חדש — תקנון + אימות גיל יוצגו מחדש */
-const consentStorage = typeof window !== 'undefined' ? window.sessionStorage : undefined;
+const consentStorage: PersistStorage<ConsentState> | undefined =
+  typeof window !== 'undefined'
+    ? {
+        getItem: (n) => {
+          try {
+            const s = sessionStorage.getItem(n);
+            return s ? (JSON.parse(s) as StorageValue<ConsentState>) : null;
+          } catch {
+            return null;
+          }
+        },
+        setItem: (n, v) => { sessionStorage.setItem(n, typeof v === 'string' ? v : JSON.stringify(v)); },
+        removeItem: (n) => { sessionStorage.removeItem(n); },
+      }
+    : undefined;
 
 interface ConsentState {
   termsAccepted: boolean;
@@ -32,6 +46,6 @@ export const useConsentStore = create<ConsentState>()(
       setIntroVideoSeen: (seen) => set({ introVideoSeen: seen }),
       resetConsent: () => set({ termsAccepted: false, acceptedAt: null, ageVerified: false, introVideoSeen: false }),
     }),
-    { name: CONSENT_KEY, storage: consentStorage ? { getItem: (n) => consentStorage.getItem(n), setItem: (n, v) => consentStorage.setItem(n, v), removeItem: (n) => consentStorage.removeItem(n) } : undefined }
+    { name: CONSENT_KEY, storage: consentStorage }
   )
 );

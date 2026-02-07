@@ -34,6 +34,7 @@ const routes = [
   { path: '/snooker', element: <SnookerGame />, fullHeight: true },
   { path: '/cards', element: <TouchCardGame />, fullHeight: true },
   { path: '/touch', element: <TouchCardGame />, fullHeight: true },
+  { path: '/poker', element: <PokerTable />, fullHeight: true },
   { path: '/store', element: <StoreView />, fullHeight: false },
   { path: '/profile', element: <ProfileView />, fullHeight: false },
   { path: '/leaderboard', element: <LeaderboardView />, fullHeight: false },

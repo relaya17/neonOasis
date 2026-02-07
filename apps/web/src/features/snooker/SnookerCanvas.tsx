@@ -35,6 +35,9 @@ const TABLE_IMAGE_BY_LEVEL: Record<number, string> = {
   2: '/snooker_table.png',
 };
 const getTableImagePath = (level: number) => TABLE_IMAGE_BY_LEVEL[level] ?? TABLE_IMAGE_BY_LEVEL[2];
+/** תמונות כדורים מקצועיים — אם קובץ קיים ב־public/images משתמשים בו */
+const BALL_IMAGE_TYPES = ['white', 'red', 'yellow', 'green', 'brown', 'blue', 'pink', 'black'] as const;
+const getBallImagePath = (type: string) => `/images/snooker_ball_${type}.png`;
 const CUE_LENGTH = 280;
 const CUE_OFFSET = 40;
 const FRICTION = 0.98;
@@ -149,6 +152,16 @@ export function SnookerCanvas({
   const pocketsRef = useRef(getPocketCenters(width, height));
   const lastPottedForChatRef = useRef<string | null>(null);
   const tableImageRef = useRef<HTMLImageElement | null>(null);
+  const ballImagesRef = useRef<Record<string, HTMLImageElement | null>>({});
+
+  useEffect(() => {
+    BALL_IMAGE_TYPES.forEach((type) => {
+      const img = new Image();
+      img.onload = () => { ballImagesRef.current[type] = img; };
+      img.onerror = () => { ballImagesRef.current[type] = null; };
+      img.src = getBallImagePath(type);
+    });
+  }, []);
 
   useEffect(() => {
     const path = getTableImagePath(level);
@@ -207,26 +220,51 @@ export function SnookerCanvas({
     };
 
     const drawBall = (b: Ball, glow = false) => {
-      const color = b.type === 'white' ? WHITE : b.type === 'red' ? RED : BALL_COLORS[b.type as ColorName];
+      const baseColor = b.type === 'white' ? WHITE : b.type === 'red' ? RED : BALL_COLORS[b.type as ColorName];
       ctx.save();
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
       ctx.shadowBlur = 6;
-      ctx.shadowOffsetX = 3;
+      ctx.shadowOffsetX = 2;
       ctx.shadowOffsetY = 3;
       if (glow) {
         ctx.shadowBlur = 14;
-        ctx.shadowColor = color;
+        ctx.shadowColor = baseColor;
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
       }
-      ctx.beginPath();
-      ctx.arc(b.x, b.y, BALL_R, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.fill();
-      if (b.type === 'white' || b.type !== 'red') {
-        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
+      const ballImg = ballImagesRef.current[b.type];
+      if (ballImg && ballImg.complete && ballImg.naturalWidth > 0) {
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, BALL_R, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        const d = BALL_R * 2;
+        ctx.drawImage(ballImg, 0, 0, ballImg.naturalWidth, ballImg.naturalHeight, b.x - BALL_R, b.y - BALL_R, d, d);
+      } else {
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, BALL_R, 0, Math.PI * 2);
+        const hx = b.x - BALL_R * 0.35;
+        const hy = b.y - BALL_R * 0.35;
+        const grad = ctx.createRadialGradient(hx, hy, 0, b.x, b.y, BALL_R * 2);
+        if (b.type === 'white') {
+          grad.addColorStop(0, '#ffffff');
+          grad.addColorStop(0.25, '#f5f5f5');
+          grad.addColorStop(0.6, '#e8e8e8');
+          grad.addColorStop(1, '#c0c0c0');
+        } else {
+          const dark = b.type === 'red' ? '#8b0000' : 'rgba(0,0,0,0.4)';
+          grad.addColorStop(0, 'rgba(255,255,255,0.85)');
+          grad.addColorStop(0.2, baseColor);
+          grad.addColorStop(0.6, baseColor);
+          grad.addColorStop(1, dark);
+        }
+        ctx.fillStyle = grad;
+        ctx.fill();
+        if (b.type === 'white' || b.type !== 'red') {
+          ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
       }
       ctx.restore();
     };
@@ -253,30 +291,42 @@ export function SnookerCanvas({
       ctx.save();
       ctx.translate(white.x, white.y);
       ctx.rotate(ax);
-      const dx = CUE_OFFSET + (1 - powerNorm) * 90;
-      ctx.shadowBlur = 20;
+      const startX = CUE_OFFSET + (1 - powerNorm) * 90;
+      const tipX = startX + 18;
+      const shaftEnd = startX + CUE_LENGTH;
+      ctx.shadowBlur = 16;
       ctx.shadowColor = cueStyle.glowColor;
-      const grad = ctx.createLinearGradient(dx, 0, dx + CUE_LENGTH, 0);
-      grad.addColorStop(0, '#fff');
-      grad.addColorStop(0.08, cueStyle.primaryColor);
-      grad.addColorStop(0.35, cueStyle.primaryColor);
-      grad.addColorStop(1, 'rgba(0,0,0,0.85)');
-      ctx.fillStyle = grad;
+      ctx.shadowOffsetY = 1;
+      const shaftGrad = ctx.createLinearGradient(startX, 0, shaftEnd, 0);
+      shaftGrad.addColorStop(0, cueStyle.primaryColor);
+      shaftGrad.addColorStop(0.15, cueStyle.primaryColor);
+      shaftGrad.addColorStop(0.5, cueStyle.primaryColor);
+      shaftGrad.addColorStop(0.85, '#2a1810');
+      shaftGrad.addColorStop(1, '#1a0f08');
+      ctx.fillStyle = shaftGrad;
       ctx.beginPath();
-      ctx.moveTo(dx, -3);
-      ctx.lineTo(dx + CUE_LENGTH, -6);
-      ctx.lineTo(dx + CUE_LENGTH, 6);
-      ctx.lineTo(dx, 3);
+      const w1 = 4;
+      const w2 = 5.5;
+      ctx.moveTo(startX, -w1);
+      ctx.lineTo(tipX, -w2);
+      ctx.lineTo(shaftEnd, -w2);
+      ctx.lineTo(shaftEnd, w2);
+      ctx.lineTo(tipX, w2);
+      ctx.lineTo(startX, w1);
       ctx.closePath();
       ctx.fill();
+      ctx.fillStyle = '#f5f0e6';
+      ctx.beginPath();
+      ctx.ellipse(tipX, 0, 10, w2 + 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#e8e0d0';
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
       ctx.shadowBlur = 0;
-      ctx.strokeStyle = cueStyle.primaryColor;
+      ctx.shadowOffsetY = 0;
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)';
       ctx.lineWidth = 1;
       ctx.stroke();
-      ctx.strokeStyle = '#ffd700';
-      ctx.strokeRect(dx + 12, -2.5, 6, 5);
-      ctx.strokeRect(dx + 28, -3, 4, 6);
-      ctx.strokeRect(dx + 45, -2.8, 3, 5.6);
       ctx.restore();
     };
 
@@ -446,7 +496,7 @@ export function SnookerCanvas({
     if (!white) return;
     const { x, y } = getCanvasCoords(e);
     const dist = Math.hypot(x - white.x, y - white.y);
-    if (dist > BALL_R * 3) return;
+    if (dist > BALL_R * 5) return;
     setIsDragging(true);
     setPower(0);
     dragStart.current = { x, y, angle: angleRef.current };

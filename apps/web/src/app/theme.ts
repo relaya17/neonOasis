@@ -46,6 +46,24 @@ export function getTheme(direction: Direction = 'ltr') {
             '--neon-secondary': CYBER_PINK,
             '--neon-fade-duration': '0.3s',
           },
+          'a:focus-visible, button:focus-visible, [role="button"]:focus-visible': {
+            outline: `2px solid ${ELECTRIC_BLUE}`,
+            outlineOffset: 2,
+          },
+        },
+      },
+      MuiButton: {
+        styleOverrides: {
+          root: {
+            '&:focus-visible': { outline: `2px solid ${ELECTRIC_BLUE}`, outlineOffset: 2 },
+          },
+        },
+      },
+      MuiIconButton: {
+        styleOverrides: {
+          root: {
+            '&:focus-visible': { outline: `2px solid ${ELECTRIC_BLUE}`, outlineOffset: 2 },
+          },
         },
       },
       MuiTab: {
@@ -53,6 +71,7 @@ export function getTheme(direction: Direction = 'ltr') {
           root: {
             color: textSecondaryOnDark,
             '&.Mui-selected': { color: ELECTRIC_BLUE },
+            '&:focus-visible': { outline: `2px solid ${ELECTRIC_BLUE}`, outlineOffset: 2 },
           },
         },
       },

@@ -248,6 +248,7 @@ export function SnookerGame() {
           size="small"
           onClick={() => { playSound('neon_click'); navigate('/'); }}
           sx={{ borderColor: NEON_CYAN, color: NEON_CYAN, '&:hover': { borderColor: NEON_CYAN, bgcolor: 'rgba(0,245,212,0.1)' } }}
+          aria-label="חזרה לדף הבית"
         >
           ← חזרה
         </Button>
@@ -337,6 +338,12 @@ export function SnookerGame() {
         </Typography>
       )}
 
+      {/* הוראה קצרה */}
+      {state.winner === -1 && (
+        <Typography sx={{ color: 'rgba(0,245,212,0.9)', fontSize: '0.8rem', mb: 0.5 }}>
+          לחץ על הכדור הלבן וגרור לאחור — שחרור כדי להכות
+        </Typography>
+      )}
       {/* שולחן Canvas — מקל כיוון, פיזיקה, מד כוח, שוקווייב */}
       <SnookerCanvas
         width={400}
@@ -365,6 +372,7 @@ export function SnookerGame() {
             color: NEON_GOLD,
             '&:hover': { borderColor: NEON_GOLD, bgcolor: 'rgba(255,215,0,0.1)' },
           }}
+          aria-label="דלג והעבר תור ליריב"
         >
           דלג — העבר תור
         </Button>
@@ -386,6 +394,7 @@ export function SnookerGame() {
               fontWeight: 'bold',
               '&:hover': { opacity: 0.95 },
             }}
+            aria-label="התחל משחק סנוקר חדש"
           >
             משחק חדש
           </Button>

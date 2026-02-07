@@ -61,11 +61,13 @@ export function AppFooter() {
       >
         {t('footer.responsible')}
       </Link>
-      <FormControl size="small" sx={{ minWidth: 80 }} aria-label="Language">
+      <FormControl size="small" sx={{ minWidth: 80 }} id="footer-lang-label">
         <Select
           value={i18n.language?.slice(0, 2) || 'en'}
           onChange={(e) => i18n.changeLanguage(e.target.value)}
           sx={{ color: 'primary.main', fontSize: '0.875rem', height: 32 }}
+          aria-labelledby="footer-lang-label"
+          inputProps={{ 'aria-label': 'בחירת שפה' }}
         >
           {LANGUAGES.map((lang) => (
             <MenuItem key={lang.code} value={lang.code} aria-label={lang.label}>

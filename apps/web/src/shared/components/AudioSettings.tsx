@@ -94,6 +94,7 @@ export function AudioSettings({ open, onClose }: AudioSettingsProps) {
       onClose={onClose}
       maxWidth="sm"
       fullWidth
+      aria-labelledby="audio-dialog-title"
       PaperProps={{
         sx: {
           bgcolor: 'rgba(26, 26, 26, 0.95)',
@@ -103,7 +104,7 @@ export function AudioSettings({ open, onClose }: AudioSettingsProps) {
         },
       }}
     >
-      <DialogTitle
+      <DialogTitle id="audio-dialog-title"
         sx={{
           color: NEON_CYAN,
           textAlign: 'center',
@@ -156,6 +157,7 @@ export function AudioSettings({ open, onClose }: AudioSettingsProps) {
               step={0.01}
               disabled={!soundEnabled}
               valueLabelDisplay="auto"
+              aria-label="עוצמת אפקטי קול"
               valueLabelFormat={(v: any) => `${Math.round(v * 100)}%`}
               sx={{
                 color: soundEnabled ? NEON_CYAN : '#888',
@@ -205,6 +207,7 @@ export function AudioSettings({ open, onClose }: AudioSettingsProps) {
               disabled={!voiceEnabled}
               valueLabelDisplay="auto"
               valueLabelFormat={(v: any) => `${Math.round(v * 100)}%`}
+              aria-label="עוצמת קול דיבוב"
               sx={{
                 color: voiceEnabled ? NEON_PINK : '#888',
                 '& .MuiSlider-thumb': {

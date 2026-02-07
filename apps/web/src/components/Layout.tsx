@@ -45,6 +45,30 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <Box sx={{ pb: 7 }}>
+      <a
+        href="#main-content"
+        className="skip-link"
+        style={{
+          position: 'absolute',
+          left: '-9999px',
+          zIndex: 9999,
+          padding: '12px 24px',
+          background: '#00ffff',
+          color: '#0a0a0f',
+          fontWeight: 'bold',
+          borderRadius: 8,
+        }}
+        onFocus={(e) => {
+          e.currentTarget.style.left = '12px';
+          e.currentTarget.style.top = '12px';
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.left = '-9999px';
+          e.currentTarget.style.top = 'auto';
+        }}
+      >
+        דלג לתוכן הראשי
+      </a>
       {apiOnline === false && (
         <Box
           role="status"
@@ -110,7 +134,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </Toolbar>
       </AppBar>
 
-      <main>{children}</main>
+      <main id="main-content" tabIndex={-1}>{children}</main>
 
       <AppFooter />
 
