@@ -51,8 +51,32 @@ export function CoinsInfoGate({ children }: CoinsInfoGateProps) {
   const handleGuest = async () => {
     setStatus('loading');
     setErrorMsg('');
+
+    const enterAsLocalGuest = () => {
+      const guestId = `guest_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+      setUser(guestId, 'Guest', false);
+      setUserId(guestId);
+      useWalletStore.getState().setBalance('0');
+      setStatus('idle');
+      setErrorMsg('');
+      finishGate();
+      navigate('/', { replace: true });
+    };
+
+    // If API is known to be offline, skip the request entirely
+    if (apiOnline === false) {
+      enterAsLocalGuest();
+      return;
+    }
+
     try {
-      const res = await fetch(`${base || '/'}/api/auth/guest`, { method: 'POST' });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3000);
+      const res = await fetch(`${base || ''}/api/auth/guest`, {
+        method: 'POST',
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.userId) {
         setUser(data.userId, data.username ?? 'Guest', !!data.is_admin);
@@ -64,17 +88,9 @@ export function CoinsInfoGate({ children }: CoinsInfoGateProps) {
         return;
       }
     } catch {
-      // fall through to local guest
+      // timeout or network error — fall through to local guest
     }
-    // Fallback: enter as guest locally when API is down
-    const guestId = `guest_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-    setUser(guestId, 'Guest', false);
-    setUserId(guestId);
-    useWalletStore.getState().setBalance('0');
-    setStatus('idle');
-    setErrorMsg('');
-    finishGate();
-    navigate('/', { replace: true });
+    enterAsLocalGuest();
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -175,33 +191,31 @@ export function CoinsInfoGate({ children }: CoinsInfoGateProps) {
               </Typography>
 
               <Typography variant="subtitle2" sx={{ color: '#00f2ea', fontWeight: 'bold', mb: 0.25, fontSize: '0.82rem' }}>
-                1. Balance (מאזן / Play Money)
+                1. מטבעות וירטואליים (Play Money)
               </Typography>
               <Typography variant="body2" sx={{ color: '#ccc', mb: 1.25, fontSize: '0.8rem', lineHeight: 1.5 }}>
-                כסף שקנית או שקיבלת (קופונים, הפניות). משמש לדמי כניסה, קופה בשולחן, חנות ושליחת מתנות בלייב.
-              </Typography>
-
-              <Typography variant="subtitle2" sx={{ color: '#ff9800', fontWeight: 'bold', mb: 0.25, fontSize: '0.82rem' }}>
-                2. Prize Balance (יתרת פרס / לפדיון)
-              </Typography>
-              <Typography variant="body2" sx={{ color: '#ccc', mb: 1.25, fontSize: '0.8rem', lineHeight: 1.5 }}>
-                כסף שהרווחת — מניצחונות במשחקי מיומנות וממתנות מהקהל. ניתן למשיכה (Cash Out) בהתאם לתקנון.
+                משמשים למשחקים, חנות ושליחת מתנות. המטבעות הם וירטואליים ואינם מהווים ערך כספי ממשי.
               </Typography>
 
               <Typography variant="subtitle2" sx={{ color: '#00f2ea', fontWeight: 'bold', mb: 0.25, fontSize: '0.82rem' }}>
-                3. איך מרוויחים?
+                2. מצב אימון (מול מחשב)
               </Typography>
               <Typography variant="body2" sx={{ color: '#ccc', mb: 1.25, fontSize: '0.8rem', lineHeight: 1.5 }}>
-                ניצחון (ששבש, סנוקר, פוקר) ומתנות מהקהל → Prize Balance. רכישה, קופון, הזמנת חבר → Balance.
+                משחק מול AI הוא לתרגול בלבד — ללא דמי כניסה וללא רווח כספי. מיועד ללמוד ולשפר מיומנות.
+              </Typography>
+
+              <Typography variant="subtitle2" sx={{ color: '#ff9800', fontWeight: 'bold', mb: 0.25, fontSize: '0.82rem' }}>
+                3. תחרות מיומנות (מול שחקן)
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#ccc', mb: 1.25, fontSize: '0.8rem', lineHeight: 1.5 }}>
+                תחרויות בין שחקנים מבוססות על מיומנות (Skill-Based) בלבד — לא על מזל. הפרסים מבוססי מיומנות בכפוף לתקנון.
               </Typography>
 
               <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)', my: 1 }} />
 
-              <Typography variant="subtitle2" sx={{ color: '#ff9800', fontWeight: 'bold', mb: 0.25, fontSize: '0.82rem' }}>
-                פדיון כסף
-              </Typography>
-              <Typography variant="body2" sx={{ color: '#aaa', fontSize: '0.78rem', lineHeight: 1.5 }}>
-                רק מ-Prize Balance, בכפוף למינימום פדיון ולאישור המערכת. הזכיות מבוססות מיומנות (Skill-Based).
+              <Typography variant="body2" sx={{ color: '#aaa', fontSize: '0.72rem', lineHeight: 1.5, textAlign: 'center' }}>
+                Neon Oasis אינה אתר הימורים. אין משחקי מזל. כל התחרויות מבוססות מיומנות בלבד.
+                השימוש בכפוף לתקנון, לתנאי השימוש ולחוקי המדינה שלך.
               </Typography>
             </Box>
           )}

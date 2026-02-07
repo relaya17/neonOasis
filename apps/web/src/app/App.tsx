@@ -11,8 +11,8 @@ import { VegasFeed, LiveMatchFeed } from '../features/feed';
 import { LandingPage } from '../features/landing';
 import { StoreView } from '../features/store';
 import { BoardContainer } from '../features/backgammon';
-import { SnookerGame } from '../features/snooker';
-import { TouchCardGame, RummyLiveTable, SimplePoker, PokerTable } from '../features/cards';
+import { SnookerLiveGame } from '../features/snooker';
+import { TouchCardGame, RummyLiveGame, SimplePoker, PokerLiveGame } from '../features/cards';
 import { AdminDashboard, AdminGuard } from '../features/admin';
 import { ProfileView } from '../features/profile';
 import { LeaderboardView } from '../features/leaderboard';
@@ -203,11 +203,11 @@ export function App() {
             <Route path="/feed" element={<Layout><VegasFeed /></Layout>} />
             <Route path="/feed/:gameType" element={<Layout><LiveMatchFeed /></Layout>} />
             <Route path="/backgammon" element={<Layout><BoardContainer tableId="main" /></Layout>} />
-            <Route path="/snooker" element={<Layout><SnookerGame /></Layout>} />
+            <Route path="/snooker" element={<Layout><SnookerLiveGame /></Layout>} />
             <Route path="/cards" element={<Layout><TouchCardGame /></Layout>} />
             <Route path="/touch" element={<Layout><TouchCardGame /></Layout>} />
-            <Route path="/poker" element={<Layout><PokerTable /></Layout>} />
-            <Route path="/rummy-live" element={<Layout><RummyLiveTable /></Layout>} />
+            <Route path="/poker" element={<Layout><PokerLiveGame /></Layout>} />
+            <Route path="/rummy-live" element={<Layout><RummyLiveGame /></Layout>} />
             <Route path="/lobby" element={<Layout><LobbyView /></Layout>} />
             <Route path="/store" element={<Layout><StoreView /></Layout>} />
             <Route path="/profile" element={<Layout><ProfileView /></Layout>} />

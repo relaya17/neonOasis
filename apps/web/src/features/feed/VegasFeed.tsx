@@ -119,7 +119,7 @@ export function VegasFeed() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data?.error ?? 'Backing failed');
       }
-      setBackingSuccess('ההימור נקלט. בהצלחה!');
+      setBackingSuccess('התמיכה נקלטה. בהצלחה!');
       playSound('click');
       hapticClick();
     } catch (err) {
@@ -469,7 +469,7 @@ export function VegasFeed() {
         {backingHistory.length > 0 && (
           <Box sx={{ mt: 2 }}>
             <Typography variant="caption" sx={{ color: '#888' }}>
-              ההימורים האחרונים שלך
+              התמיכות האחרונות שלך
             </Typography>
             <Box sx={{ mt: 1, display: 'grid', gap: 0.5 }}>
               {backingHistory.map((bet) => (
@@ -519,7 +519,7 @@ export function VegasFeed() {
           disabled={backingSubmitting || apiOnline === false || !playForCoinsAllowed}
           sx={{ color: '#ffd700' }}
         >
-          שלח הימור
+          שלח תמיכה
         </Button>
       </DialogActions>
       </Dialog>

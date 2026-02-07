@@ -35,7 +35,7 @@ interface GameOption {
 const games: GameOption[] = [
   { id: 'backgammon', route: '/backgammon', color: NEON_CYAN, available: true, cardBackgroundImage: '/images/bord.png', cardBackgroundVideo: BACKGAMMON_INTRO_VIDEO_URL },
   { id: 'snooker', route: '/snooker', color: '#2e7d32', available: true, cardBackgroundVideo: SNOOKER_INTRO_VIDEO_URL },
-  { id: 'touch', route: '/touch', color: NEON_GOLD, available: true, ...(RUMMY_INTRO_VIDEO_URL && { cardBackgroundVideo: RUMMY_INTRO_VIDEO_URL }) },
+  { id: 'touch', route: '/rummy-live', color: NEON_GOLD, available: true, ...(RUMMY_INTRO_VIDEO_URL && { cardBackgroundVideo: RUMMY_INTRO_VIDEO_URL }) },
   { id: 'poker', route: '/poker', color: NEON_PINK, available: true, cardBackgroundImage: '/images/bord2.png', cardBackgroundVideo: POKER_INTRO_VIDEO_URL },
 ];
 

@@ -244,7 +244,7 @@ class PremiumSoundService {
       },
       stake: {
         en: 'Stakes are high. Show them what you are made of.',
-        he: 'ההימור גבוה. תראה להם ממה אתה עשוי.',
+        he: 'התחרות מתלהטת. תראה להם ממה אתה עשוי.',
       },
       win: {
         en: 'Clean move.',

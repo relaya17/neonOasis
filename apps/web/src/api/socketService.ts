@@ -121,7 +121,7 @@ class SocketService {
     this.socket?.off(SOCKET_EVENTS.GAME_OVER);
   }
 
-  /** האזנה להימור שהוצב */
+  /** האזנה לדמי כניסה לתחרות שהוצבו */
   onBetPlaced(callback: (data: { userId: string; amount: number }) => void) {
     this.socket?.on(SOCKET_EVENTS.BET_PLACED, callback);
   }

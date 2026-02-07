@@ -6,3 +6,5 @@ export { useGeo, type GeoInfo } from './useGeo';
 export { useApiStatus } from './useApiStatus';
 export { useWebGLContextLoss } from './useWebGLContextLoss';
 export { useAIDealer } from './useAIDealer';
+export { useLiveGame } from './useLiveGame';
+export type { UseLiveGameOptions, UseLiveGameReturn } from './useLiveGame';

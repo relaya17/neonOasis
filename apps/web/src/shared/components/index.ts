@@ -6,3 +6,5 @@ export { LiveSidebar, GIFT_TYPES } from './LiveSidebar';
 export { CashOutPanel } from './CashOutPanel';
 export { NeonWallet } from './NeonWallet';
 export { GameLiveOverlay } from './GameLiveOverlay';
+export { LiveUI, DEFAULT_GIFTS } from './LiveUI';
+export type { LiveUIProps, LiveGiftConfig } from './LiveUI';

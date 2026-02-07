@@ -1,6 +1,9 @@
 /**
- * פאנל פדיון (Cash Out) — הקופה שלי, כפתור פדה כסף עכשיו.
- * Skill-Based: פרס מניצחונות ומתנות ניתן למשיכה לאחר אימות.
+ * פאנל פרסי מיומנות — הצגת יתרת פרס ומידע משפטי.
+ * Skill-Based Competition Prizes — ניתן למימוש בכפוף לתקנון ולרישיון.
+ *
+ * חשוב: הפרסים הם מתחרויות מיומנות (Skill-Based) בלבד — לא ממשחקי מזל.
+ * משחק מול AI (מחשב) אינו מזכה בפרסי מיומנות.
  */
 
 import React from 'react';
@@ -10,7 +13,7 @@ import { playSound } from '../audio';
 const MIN_CASH_OUT = 100;
 
 interface CashOutPanelProps {
-  /** יתרת פרס (Redeemable) — מה שניתן למשיכה */
+  /** יתרת פרס (Redeemable) — מתחרויות מיומנות בלבד */
   prizeBalance: number | string;
   onCashOut: () => void;
   disabled?: boolean;
@@ -36,10 +39,10 @@ export function CashOutPanel({ prizeBalance, onCashOut, disabled }: CashOutPanel
       }}
     >
       <Typography variant="h6" sx={{ color: '#fff' }}>
-        הקופה שלי
+        פרסי מיומנות
       </Typography>
       <Typography variant="caption" sx={{ color: '#888', display: 'block' }}>
-        יתרת פרס (לפדיון) — מניצחונות ומתנות
+        יתרת פרס — מתחרויות מיומנות (PvP) ומתנות בלבד
       </Typography>
       <Typography variant="h3" sx={{ color: '#ffd700', my: 2 }}>
         {balance.toLocaleString()} 🪙
@@ -57,17 +60,25 @@ export function CashOutPanel({ prizeBalance, onCashOut, disabled }: CashOutPanel
           '&.Mui-disabled': { color: '#666', bgcolor: '#333' },
         }}
         onClick={handleClick}
-        aria-label="פדה כסף עכשיו Cash Out"
+        aria-label="בקש מימוש פרס מיומנות"
       >
-        פדֵה כסף עכשיו (Cash Out)
+        בקש מימוש פרס מיומנות
       </Button>
 
-      <Typography
-        variant="caption"
-        sx={{ color: '#666', display: 'block', mt: 1, textAlign: 'center' }}
-      >
-        * פדיון מינימלי: {MIN_CASH_OUT} מטבעות. כפוף לתקנון &quot;טורניר מיומנות&quot;.
-      </Typography>
+      <Box sx={{ mt: 1.5, p: 1.5, bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.08)' }}>
+        <Typography variant="caption" sx={{ color: '#888', display: 'block', fontSize: '0.68rem', lineHeight: 1.6 }}>
+          * מינימום מימוש: {MIN_CASH_OUT} מטבעות. בכפוף לתקנון ולאישור.
+        </Typography>
+        <Typography variant="caption" sx={{ color: '#888', display: 'block', fontSize: '0.68rem', lineHeight: 1.6 }}>
+          * פרסים מבוססים על מיומנות בלבד (Skill-Based) — לא על מזל.
+        </Typography>
+        <Typography variant="caption" sx={{ color: '#888', display: 'block', fontSize: '0.68rem', lineHeight: 1.6 }}>
+          * משחק מול מחשב (AI) הוא לאימון בלבד ואינו מזכה בפרסי מיומנות.
+        </Typography>
+        <Typography variant="caption" sx={{ color: '#888', display: 'block', fontSize: '0.68rem', lineHeight: 1.6 }}>
+          * Neon Oasis אינה אתר הימורים. אין משחקי מזל באתר.
+        </Typography>
+      </Box>
     </Box>
   );
 }

@@ -1,14 +1,17 @@
 import type { ReactNode } from 'react';
 import { useRef, useEffect, useState } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Button, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useConsentStore } from './consentStore';
 import { playSound } from '../../shared/audio';
 import { INTRO_VIDEO_URL } from '../../config/videoUrls';
 import { fullScreenVideoStyle } from '../../config/videoStyles';
 
-/** כמה פעמים הווידאו רץ לפני מעבר אוטומטי לדף הבית */
-const INTRO_LOOP_COUNT = 1;
+const NEON_CYAN = '#00f5d4';
+const NEON_GOLD = '#ffd700';
+const NEON_PINK = '#f72585';
+
+/** הוידאו רץ בלופ — המשתמש בוחר מתי להמשיך */
 
 interface IntroVideoGateProps {
   children: ReactNode;
@@ -24,8 +27,6 @@ export function IntroVideoGate({ children }: IntroVideoGateProps) {
   const navigate = useNavigate();
   const [videoError, setVideoError] = useState(false);
   const [videoLoaded, setVideoLoaded] = useState(false);
-  const [playCount, setPlayCount] = useState(0);
-
   useEffect(() => {
     if (!introVideoSeen && introVideoRef.current) {
       introVideoRef.current.play().catch(() => {});
@@ -38,18 +39,15 @@ export function IntroVideoGate({ children }: IntroVideoGateProps) {
     navigate('/');
   };
 
+  /* If video fails to load, show fallback after 3s */
   useEffect(() => {
     if (!videoError) return;
-    const t = setTimeout(handleEnter, 2000);
+    const t = setTimeout(handleEnter, 3000);
     return () => clearTimeout(t);
   }, [videoError]);
 
+  /* When video ends → loop it (user decides when to continue) */
   const onVideoEnded = () => {
-    if (playCount + 1 >= INTRO_LOOP_COUNT) {
-      handleEnter();
-      return;
-    }
-    setPlayCount((c) => c + 1);
     introVideoRef.current?.play().catch(() => {});
   };
 
@@ -98,34 +96,92 @@ export function IntroVideoGate({ children }: IntroVideoGateProps) {
           opacity: videoLoaded && !videoError ? 1 : 0,
         }}
       />
+      {/* ── Two main entry buttons ────────────────── */}
       <Box
         sx={{
           position: 'absolute',
-          bottom: 24,
+          bottom: 0,
           left: 0,
           right: 0,
           display: 'flex',
-          justifyContent: 'center',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 1.5,
+          pb: 4,
+          pt: 6,
+          px: 2,
           zIndex: 2,
+          background: 'linear-gradient(to top, rgba(0,0,0,0.85) 40%, transparent 100%)',
         }}
       >
+        {/* Button 1: Enter game + find player */}
+        <Button
+          variant="contained"
+          size="large"
+          fullWidth
+          onClick={() => {
+            playSound('neon_click');
+            setIntroVideoSeen(true);
+            navigate('/lobby');
+          }}
+          sx={{
+            maxWidth: 340,
+            height: 52,
+            borderRadius: 3,
+            background: `linear-gradient(90deg, ${NEON_CYAN}, ${NEON_PINK})`,
+            color: '#000',
+            fontWeight: 'bold',
+            fontSize: '1rem',
+            textShadow: 'none',
+            boxShadow: `0 0 20px ${NEON_CYAN}40`,
+            '&:hover': { opacity: 0.9, boxShadow: `0 0 30px ${NEON_CYAN}60` },
+          }}
+        >
+          🎮 הכנס למשחק וחפש שחקן
+        </Button>
+
+        {/* Button 2: Enter live feed */}
+        <Button
+          variant="outlined"
+          size="large"
+          fullWidth
+          onClick={() => {
+            playSound('neon_click');
+            setIntroVideoSeen(true);
+            navigate('/feed');
+          }}
+          sx={{
+            maxWidth: 340,
+            height: 48,
+            borderRadius: 3,
+            borderColor: NEON_GOLD,
+            borderWidth: 2,
+            color: NEON_GOLD,
+            fontWeight: 'bold',
+            fontSize: '0.95rem',
+            '&:hover': { borderColor: NEON_GOLD, bgcolor: 'rgba(255,215,0,0.08)', borderWidth: 2 },
+          }}
+        >
+          📺 הכנס ללייב — צפה במשחקים
+        </Button>
+
+        {/* Small skip link */}
         <Typography
           component="button"
           type="button"
           onClick={handleEnter}
           sx={{
-            color: '#888',
+            mt: 0.5,
+            color: 'rgba(255,255,255,0.35)',
             bgcolor: 'transparent',
-            border: '1px solid #666',
-            borderRadius: 2,
-            px: 2,
-            py: 1,
+            border: 'none',
             cursor: 'pointer',
-            fontSize: '0.9rem',
-            '&:hover': { color: '#00f2ea', borderColor: '#00f2ea' },
+            fontSize: '0.75rem',
+            textDecoration: 'underline',
+            '&:hover': { color: 'rgba(255,255,255,0.6)' },
           }}
         >
-          דלג על וידאו
+          דלג לדף הבית
         </Typography>
       </Box>
       {(videoError || (!videoLoaded && !videoError)) && (
