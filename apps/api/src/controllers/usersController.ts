@@ -11,11 +11,11 @@ function isGuestOrDemo(userId: string): boolean {
 }
 
 export async function getBalance(req: FastifyRequest<{ Params: Params }>, reply: FastifyReply) {
-  const { userId } = req.params;
-  if (!hasDb() || isGuestOrDemo(userId)) {
-    return reply.send({ balance: '0' });
-  }
   try {
+    const { userId } = req.params;
+    if (!hasDb() || isGuestOrDemo(userId)) {
+      return reply.send({ balance: '0' });
+    }
     const result = await query<{ balance: string }>(
       'SELECT balance::text FROM users WHERE id = $1',
       [userId]
@@ -24,6 +24,10 @@ export async function getBalance(req: FastifyRequest<{ Params: Params }>, reply:
     return reply.send({ balance: result.rows[0].balance });
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Database error';
+    req.log?.warn?.(e, 'getBalance failed');
+    if (isGuestOrDemo((req.params as Params).userId)) {
+      return reply.send({ balance: '0' });
+    }
     if (msg.includes('DATABASE_URL')) return reply.status(503).send({ error: 'Database not configured' });
     return reply.status(500).send({ error: 'Database error' });
   }
@@ -31,11 +35,11 @@ export async function getBalance(req: FastifyRequest<{ Params: Params }>, reply:
 
 /** פרופיל משתמש — balance, oasis_balance, elo_rating (למשחק P2P ו-Fair Play) */
 export async function getProfile(req: FastifyRequest<{ Params: Params }>, reply: FastifyReply) {
-  const { userId } = req.params;
-  if (!hasDb() || isGuestOrDemo(userId)) {
-    return reply.send({ balance: '0', oasis_balance: '0', elo_rating: 1500 });
-  }
   try {
+    const { userId } = req.params;
+    if (!hasDb() || isGuestOrDemo(userId)) {
+      return reply.send({ balance: '0', oasis_balance: '0', elo_rating: 1500 });
+    }
     const result = await query<{ balance: string; oasis_balance: string; elo_rating: number }>(
       `SELECT balance::text, COALESCE(oasis_balance::text, '0') AS oasis_balance, COALESCE(elo_rating, 1500) AS elo_rating FROM users WHERE id = $1`,
       [userId]
@@ -49,6 +53,10 @@ export async function getProfile(req: FastifyRequest<{ Params: Params }>, reply:
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Database error';
+    req.log?.warn?.(e, 'getProfile failed');
+    if (isGuestOrDemo((req.params as Params).userId)) {
+      return reply.send({ balance: '0', oasis_balance: '0', elo_rating: 1500 });
+    }
     if (msg.includes('DATABASE_URL')) return reply.status(503).send({ error: 'Database not configured' });
     if (msg.includes('column') && msg.includes('does not exist')) {
       return reply.status(503).send({ error: 'Run migrations 004 and 005 for profile fields' });

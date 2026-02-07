@@ -18,8 +18,7 @@ import { playSound } from '../../shared/audio';
 import { SUPPORTED_LANGUAGES } from '../../i18n';
 import { BACKGAMMON_INTRO_VIDEO_URL, POKER_INTRO_VIDEO_URL, SNOOKER_INTRO_VIDEO_URL, RUMMY_INTRO_VIDEO_URL, WELCOME_CHOICE_VIDEO_URL } from '../../config/videoUrls';
 import { fullScreenVideoStyle, responsiveVideoStyle } from '../../config/videoStyles';
-
-const API_URL = import.meta.env.VITE_API_URL ?? '';
+import { getApiBase } from '../../config/apiBase';
 const NEON_CYAN = '#00f5d4';
 const NEON_PINK = '#f72585';
 const NEON_GOLD = '#ffd700';
@@ -35,7 +34,7 @@ interface GameOption {
 
 const games: GameOption[] = [
   { id: 'backgammon', route: '/backgammon', color: NEON_CYAN, available: true, cardBackgroundImage: '/images/bord.png', cardBackgroundVideo: BACKGAMMON_INTRO_VIDEO_URL },
-  { id: 'snooker', route: '/snooker', color: '#2e7d32', available: true, ...(SNOOKER_INTRO_VIDEO_URL && { cardBackgroundVideo: SNOOKER_INTRO_VIDEO_URL }) },
+  { id: 'snooker', route: '/snooker', color: '#2e7d32', available: true, cardBackgroundVideo: SNOOKER_INTRO_VIDEO_URL },
   { id: 'touch', route: '/touch', color: NEON_GOLD, available: true, ...(RUMMY_INTRO_VIDEO_URL && { cardBackgroundVideo: RUMMY_INTRO_VIDEO_URL }) },
   { id: 'poker', route: '/poker', color: NEON_PINK, available: true, cardBackgroundImage: '/images/bord2.png', cardBackgroundVideo: POKER_INTRO_VIDEO_URL },
 ];
@@ -68,7 +67,7 @@ export function LandingPage() {
     playSound('neon_click');
 
     try {
-      const res = await fetch(`${API_URL}/api/auth/guest`, { method: 'POST' });
+      const res = await fetch(`${getApiBase()}/api/auth/guest`, { method: 'POST' });
       const data = await res.json().catch(() => ({}));
       
       if (res.ok && data.userId) {

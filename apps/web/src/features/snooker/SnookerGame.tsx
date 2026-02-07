@@ -1,13 +1,20 @@
 /**
  * Snooker Game — לוח סנוקר בסגנון ניאון וגאס
  * משחק פשוט: לחיצה על כדור כדי להכניס (פוט), ניקוד אוטומטי
+ * וידאו פרומו בכניסה (כמו פוקר/רמי/שש-בש)
  */
 
-import React, { useCallback } from 'react';
-import { Box, Button, Typography } from '@mui/material';
+import React, { useCallback, useState, useRef, useEffect } from 'react';
+import { Box, Button, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useSnookerStore, COLOR_ORDER, COLOR_VALUES, type ColorName } from './store';
 import { playSound } from '../../shared/audio';
+import { SNOOKER_INTRO_VIDEO_URL } from '../../config/videoUrls';
+import { responsiveVideoStyle } from '../../config/videoStyles';
+import { SnookerLiveUI } from './SnookerLiveUI';
+import { SnookerCanvas } from './SnookerCanvas';
+import { CUE_DESIGNS, DEFAULT_CUE_ID } from './snookerCues';
+import type { CueDesign } from './snookerCues';
 
 const FELT = '#0d4d2a';
 const FELT_LIGHT = '#126b38';
@@ -27,13 +34,109 @@ const COLOR_BALLS: Record<ColorName, string> = {
   black: '#1a1a1a',
 };
 
+const GOLD_RAIN_PARTICLES = Array.from({ length: 48 }, (_, i) => ({
+  id: i,
+  left: (i * 2.1 + (i % 7)) % 98,
+  delay: (i % 5) * 0.25,
+  size: 6 + (i % 4),
+}));
+
+function GoldRainEffect() {
+  return (
+    <Box
+      sx={{
+        position: 'fixed',
+        inset: 0,
+        pointerEvents: 'none',
+        zIndex: 50,
+        overflow: 'hidden',
+      }}
+    >
+      {GOLD_RAIN_PARTICLES.map((p) => (
+        <Box
+          key={p.id}
+          sx={{
+            position: 'absolute',
+            left: `${p.left}%`,
+            top: '-5%',
+            width: p.size,
+            height: p.size,
+            borderRadius: '50%',
+            bgcolor: '#ffd700',
+            boxShadow: '0 0 10px #ffd700',
+            animation: 'goldRainFall 4.5s ease-in forwards',
+            animationDelay: `${p.delay}s`,
+            opacity: 0.9,
+            '@keyframes goldRainFall': {
+              '0%': { transform: 'translateY(0)', opacity: 0.9 },
+              '100%': { transform: 'translateY(110vh)', opacity: 0.2 },
+            },
+          }}
+        />
+      ))}
+    </Box>
+  );
+}
+
 export function SnookerGame() {
   const navigate = useNavigate();
-  const { state, potRed, potColor, endFrame, reset } = useSnookerStore();
+  const { state, setLevel, potRed, potColor, endFrame, reset } = useSnookerStore();
+  const [showIntroVideo, setShowIntroVideo] = useState(true);
+  const [impactVisible, setImpactVisible] = useState(false);
+  const [boomMessage, setBoomMessage] = useState<string | null>(null);
+  const [resetKey, setResetKey] = useState(0);
+  const [activeCue, setActiveCue] = useState<CueDesign>(() => CUE_DESIGNS[DEFAULT_CUE_ID]);
+  const [showGoldRain, setShowGoldRain] = useState(false);
+  const cueTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const introVideoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (showIntroVideo && introVideoRef.current) {
+      introVideoRef.current.play().catch(() => {});
+    }
+  }, [showIntroVideo]);
+
+  useEffect(() => {
+    if (!impactVisible) return;
+    const t = setTimeout(() => setImpactVisible(false), 600);
+    return () => clearTimeout(t);
+  }, [impactVisible]);
+
+  useEffect(() => {
+    if (!showGoldRain) return;
+    const t = setTimeout(() => setShowGoldRain(false), 5500);
+    return () => clearTimeout(t);
+  }, [showGoldRain]);
+
+  const handleGiftReceived = useCallback((giftId: string) => {
+    if (cueTimeoutRef.current) clearTimeout(cueTimeoutRef.current);
+    if (giftId === 'crown') {
+      setActiveCue(CUE_DESIGNS.GOLD_VIP);
+      setShowGoldRain(true);
+      playSound('win');
+      cueTimeoutRef.current = setTimeout(() => {
+        setActiveCue(CUE_DESIGNS[DEFAULT_CUE_ID]);
+        cueTimeoutRef.current = null;
+      }, 30000);
+    } else if (giftId === 'rose') {
+      setActiveCue(CUE_DESIGNS.LASER_KNIGHT);
+      cueTimeoutRef.current = setTimeout(() => {
+        setActiveCue(CUE_DESIGNS[DEFAULT_CUE_ID]);
+        cueTimeoutRef.current = null;
+      }, 15000);
+    } else if (giftId === 'diamond') {
+      setActiveCue(CUE_DESIGNS.NEON_CYBER);
+      cueTimeoutRef.current = setTimeout(() => {
+        setActiveCue(CUE_DESIGNS[DEFAULT_CUE_ID]);
+        cueTimeoutRef.current = null;
+      }, 10000);
+    }
+  }, []);
 
   const handlePotRed = useCallback(() => {
     if (state.winner !== -1 || state.phase !== 'red' || state.redsPotted >= 15) return;
-    playSound('neon_click');
+    setBoomMessage('BOOM! KingOfSnooker just pocketed a red! 🎱🔥');
+    setImpactVisible(true);
     potRed();
   }, [state.phase, state.redsPotted, state.winner, potRed]);
 
@@ -41,7 +144,8 @@ export function SnookerGame() {
     (color: ColorName) => {
       if (state.winner !== -1 || state.colorsPotted[color]) return;
       if (state.phase === 'color') {
-        playSound('neon_click');
+        setBoomMessage(`BOOM! Potted ${color}! 🎱🔥`);
+        setImpactVisible(true);
         potColor(color);
       }
     },
@@ -58,9 +162,68 @@ export function SnookerGame() {
   const canPotRed = state.phase === 'red' && redsLeft > 0 && state.winner === -1;
   const canPotColor = state.phase === 'color' && state.winner === -1;
 
+  /* פרומו וידאו בכניסה — כמו שלושת הכרטיסים האחרים */
+  if (showIntroVideo) {
+    return (
+      <Box
+        sx={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 999,
+          bgcolor: '#000',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <video
+          ref={introVideoRef}
+          src={SNOOKER_INTRO_VIDEO_URL}
+          muted
+          playsInline
+          autoPlay
+          loop
+          style={responsiveVideoStyle}
+        />
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            p: 2,
+            display: 'flex',
+            justifyContent: 'center',
+            background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
+          }}
+        >
+          <Button
+            variant="contained"
+            size="large"
+            onClick={() => {
+              playSound('neon_click');
+              setShowIntroVideo(false);
+            }}
+            sx={{
+              bgcolor: NEON_GOLD,
+              color: '#000',
+              fontWeight: 'bold',
+              fontSize: '1.1rem',
+              px: 4,
+              py: 1.5,
+              '&:hover': { bgcolor: NEON_GOLD, opacity: 0.9 },
+            }}
+          >
+            כניסה למשחק
+          </Button>
+        </Box>
+      </Box>
+    );
+  }
+
   return (
     <Box
       sx={{
+        position: 'relative',
         minHeight: '100vh',
         bgcolor: '#000',
         background: 'radial-gradient(ellipse at 50% 30%, #0a1a0f 0%, #000 70%)',
@@ -72,6 +235,12 @@ export function SnookerGame() {
         px: 1,
       }}
     >
+      <SnookerLiveUI
+        boomMessage={boomMessage}
+        onBoomShown={() => setBoomMessage(null)}
+        onGiftSent={handleGiftReceived}
+      />
+      {showGoldRain && <GoldRainEffect />}
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 720, mb: 1 }}>
         <Button
@@ -115,6 +284,50 @@ export function SnookerGame() {
         </Box>
       </Box>
 
+      {/* בחירת רמה — שולחן שונה לכל רמה */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5,
+          mb: 2,
+          p: 1.5,
+          borderRadius: 2,
+          bgcolor: 'rgba(0,0,0,0.4)',
+          border: '1px solid rgba(0,245,212,0.25)',
+        }}
+      >
+        <Typography sx={{ color: NEON_CYAN, fontSize: '0.9rem', fontWeight: 500 }}>רמה (שולחן):</Typography>
+        <ToggleButtonGroup
+          value={state.level ?? 1}
+          exclusive
+          onChange={(_, value: number | null) => {
+            if (value != null) {
+              playSound('neon_click');
+              setLevel(value);
+            }
+          }}
+          size="small"
+          sx={{
+            '& .MuiToggleButton-root': {
+              color: '#888',
+              borderColor: 'rgba(0,245,212,0.4)',
+              px: 1.5,
+              '&.Mui-selected': {
+                color: NEON_CYAN,
+                bgcolor: 'rgba(0,245,212,0.15)',
+                borderColor: NEON_CYAN,
+                '&:hover': { bgcolor: 'rgba(0,245,212,0.25)' },
+              },
+              '&:hover': { borderColor: NEON_CYAN, color: NEON_CYAN },
+            },
+          }}
+        >
+          <ToggleButton value={1}>רמה 1</ToggleButton>
+          <ToggleButton value={2}>רמה 2</ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
+
       {/* Turn / phase hint */}
       {state.winner === -1 && (
         <Typography sx={{ color: '#aaa', fontSize: '0.8rem', mb: 1 }}>
@@ -124,133 +337,21 @@ export function SnookerGame() {
         </Typography>
       )}
 
-      {/* Table */}
-      <Box
-        sx={{
-          position: 'relative',
-          width: '100%',
-          maxWidth: 560,
-          aspectRatio: '2 / 1',
-          borderRadius: 3,
-          bgcolor: FELT,
-          background: `linear-gradient(145deg, ${FELT_LIGHT} 0%, ${FELT} 50%)`,
-          boxShadow: `inset 0 0 60px rgba(0,0,0,0.4), 0 0 30px ${NEON_CYAN}20`,
-          border: '3px solid #1a6b3c',
-          overflow: 'hidden',
-        }}
-      >
-        {/* Pockets */}
-        {[
-          { left: 0, top: 0 },
-          { left: '50%', top: 0, transform: 'translateX(-50%)' },
-          { right: 0, top: 0 },
-          { left: 0, bottom: 0 },
-          { left: '50%', bottom: 0, transform: 'translateX(-50%)' },
-          { right: 0, bottom: 0 },
-        ].map((pos, i) => (
-          <Box
-            key={i}
-            sx={{
-              position: 'absolute',
-              width: 28,
-              height: 28,
-              borderRadius: '50%',
-              bgcolor: POCKET,
-              border: '2px solid #222',
-              boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.8)',
-              ...pos,
-            }}
-          />
-        ))}
-
-        {/* Balls area - reds */}
-        <Box
-          sx={{
-            position: 'absolute',
-            left: '50%',
-            top: '35%',
-            transform: 'translate(-50%, -50%)',
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 0.5,
-            maxWidth: 120,
-            justifyContent: 'center',
-          }}
-        >
-          {redsLeft > 0 && (
-            <Box
-              onClick={canPotRed ? handlePotRed : undefined}
-              sx={{
-                width: 32,
-                height: 32,
-                borderRadius: '50%',
-                bgcolor: RED,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2)',
-                border: '1px solid #8b0000',
-                cursor: canPotRed ? 'pointer' : 'default',
-                opacity: canPotRed ? 1 : 0.9,
-                '&:hover': canPotRed ? { transform: 'scale(1.1)', boxShadow: `0 0 20px ${RED}` } : {},
-                transition: 'transform 0.15s, box-shadow 0.15s',
-              }}
-            />
-          )}
-        </Box>
-
-        {/* Color balls row */}
-        <Box
-          sx={{
-            position: 'absolute',
-            left: '50%',
-            top: '58%',
-            transform: 'translate(-50%, -50%)',
-            display: 'flex',
-            gap: 2,
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            maxWidth: 320,
-          }}
-        >
-          {COLOR_ORDER.map((color) => {
-            const potted = state.colorsPotted[color];
-            const canPot = canPotColor && !potted;
-            return (
-              <Box
-                key={color}
-                onClick={() => handlePotColor(color)}
-                sx={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: '50%',
-                  bgcolor: potted ? 'transparent' : COLOR_BALLS[color],
-                  boxShadow: potted ? 'none' : '0 2px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.25)',
-                  border: potted ? '2px dashed #333' : `1px solid ${color === 'black' ? '#333' : 'rgba(0,0,0,0.3)'}`,
-                  cursor: canPot ? 'pointer' : 'default',
-                  opacity: potted ? 0.4 : 1,
-                  '&:hover': canPot ? { transform: 'scale(1.15)', boxShadow: `0 0 16px ${COLOR_BALLS[color]}` } : {},
-                  transition: 'transform 0.15s, box-shadow 0.15s, opacity 0.2s',
-                }}
-              />
-            );
-          })}
-        </Box>
-
-        {/* Cue ball (decorative) */}
-        <Box
-          sx={{
-            position: 'absolute',
-            left: '18%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: 26,
-            height: 26,
-            borderRadius: '50%',
-            bgcolor: CUE_BALL,
-            boxShadow: '0 2px 6px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.9)',
-            border: '1px solid #ddd',
-          }}
-        />
-      </Box>
+      {/* שולחן Canvas — מקל כיוון, פיזיקה, מד כוח, שוקווייב */}
+      <SnookerCanvas
+        width={400}
+        height={600}
+        redsCount={redsLeft}
+        colorsPotted={state.colorsPotted}
+        phase={state.phase}
+        onPotRed={handlePotRed}
+        onPotColor={handlePotColor}
+        disabled={state.winner !== -1}
+        resetKey={resetKey}
+        onStrike={() => playSound('neon_click')}
+        activeCue={activeCue}
+        level={state.level ?? 1}
+      />
 
       {/* Pass turn (when phase is color) */}
       {state.phase === 'color' && state.winner === -1 && (
@@ -278,7 +379,7 @@ export function SnookerGame() {
           <Button
             variant="contained"
             size="medium"
-            onClick={() => { playSound('neon_click'); reset(); }}
+            onClick={() => { playSound('neon_click'); setResetKey((k) => k + 1); reset(); }}
             sx={{
               mt: 1,
               background: `linear-gradient(90deg, ${NEON_CYAN}, ${NEON_PINK})`,

@@ -22,6 +22,8 @@ export interface SnookerState {
   /** When phase is color, which color was chosen to pot (for respot) */
   lastColorPotted: ColorName | null;
   winner: -1 | 0 | 1;
+  /** רמה/שלב — קובע איזו תמונת שולחן: 1 = snooker_table2, 2+ = snooker_table */
+  level: number;
 }
 
 const initialColors: Record<ColorName, boolean> = {
@@ -42,6 +44,7 @@ function createInitialSnookerState(): SnookerState {
     phase: 'red',
     lastColorPotted: null,
     winner: -1,
+    level: 1,
   };
 }
 
@@ -49,6 +52,7 @@ interface SnookerStoreState {
   state: SnookerState;
   setState: (s: SnookerState | ((prev: SnookerState) => SnookerState)) => void;
   reset: () => void;
+  setLevel: (level: number) => void;
   potRed: () => void;
   potColor: (color: ColorName) => void;
   endFrame: () => void;
@@ -60,7 +64,8 @@ export const useSnookerStore = create<SnookerStoreState>((set) => ({
     set((prev) => ({
       state: typeof arg === 'function' ? (arg as (p: SnookerState) => SnookerState)(prev.state) : arg,
     })),
-  reset: () => set({ state: createInitialSnookerState() }),
+  reset: () => set((prev) => ({ state: { ...createInitialSnookerState(), level: prev.state.level } })),
+  setLevel: (level) => set((prev) => ({ state: { ...prev.state, level } })),
 
   potRed: () =>
     set((prev) => {
@@ -76,34 +81,46 @@ export const useSnookerStore = create<SnookerStoreState>((set) => ({
         },
       };
     }),
-
-  potColor: (color: ColorName) =>
-    set((prev) => {
-      const s = prev.state;
-      if (s.winner !== -1 || s.colorsPotted[color]) return prev;
-      const value = COLOR_VALUES[color];
-      const newScores: [number, number] = [
-        s.scores[0] + (s.turn === 0 ? value : 0),
-        s.scores[1] + (s.turn === 1 ? value : 0),
-      ];
-      const newColors = { ...s.colorsPotted, [color]: true };
-      const allColorsPotted = COLOR_ORDER.every((c) => newColors[c]);
-      const allRedsPotted = s.redsPotted >= 15;
-      const gameOver = allRedsPotted && allColorsPotted;
-      const winner: -1 | 0 | 1 = gameOver ? (newScores[0] >= newScores[1] ? 0 : 1) : -1;
-      return {
-        state: {
-          ...s,
-          colorsPotted: newColors,
-          scores: newScores,
-          lastColorPotted: color,
-          phase: 'red',
-          turn: (s.turn === 0 ? 1 : 0) as 0 | 1,
-          winner,
-        },
-      };
-    }),
-
+    potColor: (color: ColorName) =>
+      set((prev) => {
+        const s = prev.state;
+        if (s.winner !== -1) return prev;
+    
+        const value = COLOR_VALUES[color];
+        const newScores: [number, number] = [
+          s.scores[0] + (s.turn === 0 ? value : 0),
+          s.scores[1] + (s.turn === 1 ? value : 0),
+        ];
+    
+        // חוק סנוקר: אם עדיין יש כדורים אדומים על השולחן, 
+        // כדור צבעוני שנכנס "חוזר" לשולחן (Respot)
+        const stillHasReds = s.redsPotted < 15;
+        
+        // אם נשארו אדומים, הצבעים לא באמת "יוצאים" מהמשחק
+        const newColors = stillHasReds 
+          ? { ...s.colorsPotted } // הכדור נשאר false כי הוא חזר לשולחן
+          : { ...s.colorsPotted, [color]: true }; // שלב חיסול הצבעים בסוף
+    
+        // בדיקת סוף משחק: רק כשכל האדומים בחוץ וגם כל הצבעים בחוץ
+        const allColorsPotted = COLOR_ORDER.every((c) => newColors[c]);
+        const gameOver = !stillHasReds && allColorsPotted;
+        const winner: -1 | 0 | 1 = gameOver ? (newScores[0] >= newScores[1] ? 0 : 1) : -1;
+    
+        return {
+          state: {
+            ...s,
+            colorsPotted: newColors,
+            scores: newScores,
+            lastColorPotted: color,
+            // אם הכנסת צבע כשיש אדומים, התור הבא הוא שוב לנסות אדום
+            phase: 'red',
+            // חוק סנוקר: אם הכנסת כדור (אדום או צבע), התור נשאר אצלך!
+            // התור עובר רק אם החטאת (במנוע שלנו כרגע כל לחיצה היא כניסה)
+            turn: s.turn, 
+            winner,
+          },
+        };
+      }),
   endFrame: () =>
     set((prev) => {
       const s = prev.state;

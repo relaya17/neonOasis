@@ -57,6 +57,8 @@ class PremiumSoundService {
     const base =
       (typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL) || '';
     const baseNorm = base.endsWith('/') ? base.slice(0, -1) : base;
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const soundBase = origin ? `${origin}${baseNorm || ''}` : baseNorm || '';
 
     try {
       const soundEvents: SoundEvent[] = [
@@ -73,14 +75,16 @@ class PremiumSoundService {
       ];
 
       for (const event of soundEvents) {
-        const soundPath = `${baseNorm}/sounds/${event}.mp3`;
+        const soundPath = `${soundBase}/sounds/${event}.mp3`;
         this.sounds.set(
           event,
           new Howl({
             src: [soundPath],
             volume: this.state.volume,
             onloaderror: () => {
-              console.warn(`Sound file not found: ${soundPath}, using fallback`);
+              if (typeof console !== 'undefined' && console.debug) {
+                console.debug(`Sound file not found: ${soundPath}, using fallback`);
+              }
             },
           })
         );
@@ -98,14 +102,16 @@ class PremiumSoundService {
       ];
 
       for (const event of voiceEvents) {
-        const voicePath = `${baseNorm}/sounds/voice_${event}_${this.state.language}.mp3`;
+        const voicePath = `${soundBase}/sounds/voice_${event}_${this.state.language}.mp3`;
         this.voices.set(
           event,
           new Howl({
             src: [voicePath],
             volume: this.state.voiceVolume,
             onloaderror: () => {
-              console.warn(`Voice file not found: ${voicePath}, using TTS fallback`);
+              if (typeof console !== 'undefined' && console.debug) {
+                console.debug(`Voice file not found: ${voicePath}, using TTS fallback`);
+              }
             },
           })
         );

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { getApiBase } from '../../config/apiBase';
 
 const DEMO_USER_ID = import.meta.env.VITE_DEMO_USER_ID ?? '00000000-0000-0000-0000-000000000001';
 
@@ -17,8 +18,6 @@ interface WalletState {
   fetchProfile: (userId?: string) => Promise<void>;
 }
 
-const API_URL = import.meta.env.VITE_API_URL ?? '';
-
 export const useWalletStore = create<WalletState>((set, get) => ({
   balance: '0',
   userId: DEMO_USER_ID,
@@ -36,7 +35,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       return;
     }
     try {
-      const res = await fetch(`${API_URL}/api/users/${uid}/balance`);
+      const res = await fetch(`${getApiBase()}/api/users/${uid}/balance`);
       if (res.ok) {
         const data = await res.json();
         set({ balance: data.balance ?? '0' });
@@ -50,7 +49,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     const uid = userId ?? get().userId;
     if (!uid) return;
     try {
-      const res = await fetch(`${API_URL}/api/users/${uid}/profile`);
+      const res = await fetch(`${getApiBase()}/api/users/${uid}/profile`);
       if (res.ok) {
         const data = await res.json();
         set({
