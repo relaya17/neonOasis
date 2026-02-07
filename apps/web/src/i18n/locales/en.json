@@ -54,18 +54,18 @@
     "loggingIn": "Logging in...",
     "chooseGame": "Choose game",
     "enterGame": "Enter game",
+    "play": "Play",
     "videoNotLoaded": "Video failed to load. Click to continue.",
     "loadingVideo": "Loading video...",
     "continueToHome": "Go to home",
     "continueToLogin": "Continue to login",
-    "vegasPlatform": "Vegas Gaming Platform",
-    "tagline": "Don't rely on luck or the 777 machine – use your mind skills and you can win",
+    "slogan": "Where luck ends, your mind starts to earn.",
     "games": {
-      "backgammon": "Backgammon",
+      "backgammon": "Backgammon / Chess",
       "snooker": "Snooker",
       "touch": "Rummy Stones",
       "rummyStones": "Rummy Stones",
-      "poker": "Poker & More"
+      "poker": "Cards"
     },
     "comingSoon": "Coming soon",
     "language": "Language"

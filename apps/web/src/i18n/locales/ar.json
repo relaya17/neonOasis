@@ -54,18 +54,18 @@
     "loggingIn": "جاري تسجيل الدخول...",
     "chooseGame": "اختر اللعبة",
     "enterGame": "الدخول إلى اللعبة",
+    "play": "Play",
     "videoNotLoaded": "فشل تحميل الفيديو. انقر للمتابعة.",
     "loadingVideo": "جاري تحميل الفيديو...",
     "continueToHome": "الذهاب للصفحة الرئيسية",
     "continueToLogin": "المتابعة لتسجيل الدخول",
-    "vegasPlatform": "منصة ألعاب Vegas",
-    "tagline": "لا تعتمد على الحظ ولا على آلة 777 – استخدم مهارات عقلك وستربح",
+    "slogan": "حيث ينتهي الحظ، يبدأ عقلك بتحقيق الربح.",
     "games": {
-      "backgammon": "طاولة الزهر",
+      "backgammon": "طاولة الزهر / شطرنج",
       "snooker": "سنوكر",
       "touch": "رومي الحجارة",
       "rummyStones": "رومي الحجارة",
-      "poker": "بوكر والمزيد"
+      "poker": "أوراق"
     },
     "comingSoon": "قريباً",
     "language": "اللغة"

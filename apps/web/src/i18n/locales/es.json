@@ -54,18 +54,18 @@
     "loggingIn": "Conectando...",
     "chooseGame": "Elige juego",
     "enterGame": "Entrar al juego",
+    "play": "Play",
     "videoNotLoaded": "El vídeo no cargó. Haz clic para continuar.",
     "loadingVideo": "Cargando vídeo...",
     "continueToHome": "Ir al inicio",
     "continueToLogin": "Continuar al inicio de sesión",
-    "vegasPlatform": "Plataforma de juegos Vegas",
-    "tagline": "No dependas de la suerte ni de la máquina 777 – usa tu mente y podrás ganar",
+    "slogan": "Donde termina la suerte, tu mente empieza a ganar.",
     "games": {
-      "backgammon": "Backgammon",
+      "backgammon": "Backgammon / Ajedrez",
       "snooker": "Snooker",
       "touch": "Rummy Stones",
       "rummyStones": "Rummy Stones",
-      "poker": "Póquer y más"
+      "poker": "Cartas"
     },
     "comingSoon": "Próximamente",
     "language": "Idioma"

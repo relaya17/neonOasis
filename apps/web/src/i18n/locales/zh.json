@@ -54,18 +54,18 @@
     "loggingIn": "登录中...",
     "chooseGame": "选择游戏",
     "enterGame": "进入游戏",
+    "play": "Play",
     "videoNotLoaded": "视频加载失败。点击继续。",
     "loadingVideo": "加载视频...",
     "continueToHome": "进入首页",
     "continueToLogin": "继续登录",
-    "vegasPlatform": "Vegas 游戏平台",
-    "tagline": "别靠运气，也别靠 777 机器——用你的脑力，你就能赢",
+    "slogan": "运气结束之处，正是你头脑开始赢利之时。",
     "games": {
-      "backgammon": "双陆棋",
+      "backgammon": "双陆棋 / 国际象棋",
       "snooker": "斯诺克",
       "touch": "拉米石",
       "rummyStones": "拉米石",
-      "poker": "扑克及更多"
+      "poker": "纸牌"
     },
     "comingSoon": "即将推出",
     "language": "语言"

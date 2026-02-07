@@ -54,18 +54,18 @@
     "loggingIn": "מתחבר...",
     "chooseGame": "בחר משחק",
     "enterGame": "כניסה למשחק",
+    "play": "Play",
     "videoNotLoaded": "הווידאו לא נטען. לחץ להמשך.",
     "loadingVideo": "טוען וידאו...",
     "continueToHome": "כניסה לדף הבית",
     "continueToLogin": "המשך להתחברות",
-    "vegasPlatform": "פלטפורמת משחקי Vegas",
-    "tagline": "אל תסתמך על המזל ואיקס על המכונה של 777 – בוא תנצל את כישורי המוח שלך ותוכל להרוויח",
+    "slogan": "במקום שבו המזל נגמר, המוח שלכם מתחיל להרוויח.",
     "games": {
-      "backgammon": "שש-בש",
+      "backgammon": "ששבש / שחמט",
       "snooker": "סנוקר",
       "touch": "רמי אבנים",
       "rummyStones": "רמי אבנים",
-      "poker": "פוקר ועוד"
+      "poker": "קלפים"
     },
     "comingSoon": "בקרוב",
     "language": "שפה"
