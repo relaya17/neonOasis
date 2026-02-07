@@ -23,7 +23,7 @@ const GAMES = [
     name: 'רמי אבנים',
     icon: '🀄',
     path: '/rummy-live',
-    image: '',
+    image: 'https://res.cloudinary.com/dora8sxcb/image/upload/v1770495193/remmy.png_d22z0i.jpg',
   },
   {
     id: 'snooker',
@@ -38,6 +38,13 @@ const GAMES = [
     icon: '🎲',
     path: '/backgammon',
     image: 'https://res.cloudinary.com/dora8sxcb/image/upload/v1770488475/quarem4.png_dt88pt.png',
+  },
+  {
+    id: 'chess',
+    name: 'שחמט',
+    icon: '♟️',
+    path: '/chess',
+    image: 'https://res.cloudinary.com/dora8sxcb/image/upload/v1770489440/v_rrv2ls.jpg',
   },
 ];
 
@@ -142,6 +149,9 @@ export function LobbyView() {
                         height: '100%',
                         objectFit: 'cover',
                         objectPosition: 'center center',
+                        transform: game.id === 'backgammon' ? 'scale(1.18)' : 'none',
+                        transformOrigin: 'center',
+                        backgroundColor: 'transparent',
                         filter: selectedGame === game.id ? 'brightness(0.75)' : 'brightness(0.5)',
                         transition: 'filter 0.3s ease',
                       }}
@@ -150,19 +160,6 @@ export function LobbyView() {
                     <Typography sx={{ fontSize: '2.5rem', position: 'relative', zIndex: 1, mb: 1 }}>{game.icon}</Typography>
                   )}
 
-                  {/* שכבת הדרגה כהה בתחתית */}
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 50%, transparent 100%)',
-                      p: 1.5,
-                      pt: 4,
-                    }}
-                  />
-
                   {/* שם המשחק — ממורכז */}
                   <Box sx={{ position: 'relative', zIndex: 1, pb: 1.5, textAlign: 'center', width: '100%' }}>
                     {game.image && <Typography sx={{ fontSize: '1.5rem', lineHeight: 1, mb: 0.3 }}>{game.icon}</Typography>}
@@ -170,6 +167,11 @@ export function LobbyView() {
                       fontWeight: 'bold',
                       fontSize: '0.95rem',
                       textShadow: '0 2px 8px rgba(0,0,0,0.9)',
+                      display: 'inline-block',
+                      px: 1,
+                      py: 0.3,
+                      borderRadius: 1.5,
+                      backgroundColor: 'rgba(0,0,0,0.35)',
                       color: selectedGame === game.id ? NEON_CYAN : '#fff',
                       transition: 'color 0.3s',
                     }}>
