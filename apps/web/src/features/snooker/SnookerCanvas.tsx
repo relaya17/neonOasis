@@ -32,7 +32,7 @@ const TABLE_MARGIN = 24;
 /** תמונות שולחן לפי רמה: רמה 1 = table2, רמה 2+ = table */
 const TABLE_IMAGE_BY_LEVEL: Record<number, string> = {
   1: '/snooker_table2.png',
-  2: '/snooker_table.png',
+  2: 'https://res.cloudinary.com/dora8sxcb/image/upload/v1770488595/lucid-origin_Top-down_orthographic_view_of_an_ultra-luxury_snooker_table_shimmering_gold_silk-2_1_hetnws.jpg',
 };
 const getTableImagePath = (level: number) => TABLE_IMAGE_BY_LEVEL[level] ?? TABLE_IMAGE_BY_LEVEL[2];
 /** תמונות כדורים מקצועיים — אם קובץ קיים ב־public/images משתמשים בו */
@@ -195,6 +195,7 @@ export function SnookerCanvas({
   useEffect(() => {
     const path = getTableImagePath(level);
     const img = new Image();
+    img.crossOrigin = 'anonymous';
     img.onload = () => { tableImageRef.current = img; };
     img.onerror = () => { tableImageRef.current = null; };
     img.src = path;
