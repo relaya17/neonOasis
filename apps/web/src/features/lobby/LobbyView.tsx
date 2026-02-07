@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, type ComponentType } from 'react';
 import { Box, Typography, Button, CircularProgress, Stack, Grid, Paper } from '@mui/material';
+import type { BoxProps } from '@mui/material/Box';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useWalletStore } from '../store';
@@ -9,6 +10,7 @@ import { playSound } from '../../shared/audio';
 const NEON_CYAN = '#00f5d4';
 const NEON_PINK = '#f72585';
 const NEON_GOLD = '#ffd700';
+const ImageBox = Box as ComponentType<BoxProps<'img'>>;
 
 const GAMES = [
   {
@@ -138,10 +140,12 @@ export function LobbyView() {
                 >
                   {/* תמונת רקע — ממורכזת ומותאמת */}
                   {game.image ? (
-                    <Box
+                    <ImageBox
                       component="img"
                       src={game.image}
                       alt={game.name}
+                      loading="lazy"
+                      decoding="async"
                       sx={{
                         position: 'absolute',
                         inset: 0,

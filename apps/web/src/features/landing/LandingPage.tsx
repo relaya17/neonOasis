@@ -39,6 +39,68 @@ const games: GameOption[] = [
   { id: 'poker', route: '/poker', color: NEON_PINK, available: true, cardBackgroundImage: '/images/bord2.png', cardBackgroundVideo: POKER_INTRO_VIDEO_URL },
 ];
 
+function LazyBackgroundVideo({
+  src,
+  poster,
+  onActivate,
+}: {
+  src: string;
+  poster?: string;
+  onActivate?: () => void;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [shouldLoad, setShouldLoad] = useState(false);
+
+  useEffect(() => {
+    if (shouldLoad) return;
+    const node = videoRef.current;
+    if (!node) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      setShouldLoad(true);
+      onActivate?.();
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setShouldLoad(true);
+            onActivate?.();
+            observer.disconnect();
+            break;
+          }
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [onActivate, shouldLoad]);
+
+  const handleActivate = () => {
+    if (!shouldLoad) {
+      setShouldLoad(true);
+      onActivate?.();
+    }
+  };
+
+  return (
+    <video
+      ref={videoRef}
+      autoPlay={shouldLoad}
+      loop
+      muted
+      playsInline
+      preload="none"
+      poster={poster}
+      onMouseEnter={handleActivate}
+      onTouchStart={handleActivate}
+      src={shouldLoad ? src : undefined}
+      style={responsiveVideoStyle}
+    />
+  );
+}
+
 export function LandingPage() {
   const { t, i18n } = useTranslation(['landing', 'common']);
   const [langAnchor, setLangAnchor] = useState<null | HTMLElement>(null);
@@ -522,13 +584,9 @@ export function LandingPage() {
                   {game.cardBackgroundVideo && (
                     <>
                       <Box sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0 }}>
-                        <video
-                          autoPlay
-                          loop
-                          muted
-                          playsInline
+                        <LazyBackgroundVideo
                           src={game.cardBackgroundVideo}
-                          style={responsiveVideoStyle}
+                          poster={game.cardBackgroundImage}
                         />
                       </Box>
                       <Box

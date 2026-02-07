@@ -2,22 +2,13 @@ import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { CacheProvider } from '@emotion/react';
-import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
+import { Component, lazy, Suspense, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
 import { Typography } from '@mui/material';
 import { useWalletStore } from '../features/store';
 import { getTheme } from './theme';
 import { cacheLtr, cacheRtl } from './RtlCache';
-import { VegasFeed, LiveMatchFeed } from '../features/feed';
 import { LandingPage } from '../features/landing';
-import { StoreView } from '../features/store';
-import { BoardContainer } from '../features/backgammon';
-import { SnookerLiveGame } from '../features/snooker';
-import { TouchCardGame, RummyLiveGame, SimplePoker, PokerLiveGame } from '../features/cards';
-import { AdminDashboard, AdminGuard } from '../features/admin';
-import { ProfileView } from '../features/profile';
-import { LeaderboardView } from '../features/leaderboard';
-import { TournamentListView, TournamentDetailView } from '../features/tournament';
-import { LobbyView } from '../features/lobby';
+import { AdminGuard } from '../features/admin';
 import { SyncProvider } from '../features/sync';
 import { ConsentGate, GuardianGate, CoinsInfoGate, IntroVideoGate, OnboardingGate, TermsPage, PrivacyPage, ResponsibleGamingPage, useSessionStore, LoginView } from '../features/auth';
 import { getPendingReferralInviterId } from '../features/auth/referralRef';
@@ -73,6 +64,21 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 const FULL_HEIGHT_PATHS = new Set([
   '/', '/feed', '/backgammon', '/snooker', '/cards', '/touch', '/poker', '/rummy-live', '/lobby',
 ]);
+
+const VegasFeed = lazy(() => import('../features/feed').then((m) => ({ default: m.VegasFeed })));
+const LiveMatchFeed = lazy(() => import('../features/feed').then((m) => ({ default: m.LiveMatchFeed })));
+const BoardContainer = lazy(() => import('../features/backgammon').then((m) => ({ default: m.BoardContainer })));
+const SnookerLiveGame = lazy(() => import('../features/snooker').then((m) => ({ default: m.SnookerLiveGame })));
+const TouchCardGame = lazy(() => import('../features/cards').then((m) => ({ default: m.TouchCardGame })));
+const PokerLiveGame = lazy(() => import('../features/cards').then((m) => ({ default: m.PokerLiveGame })));
+const RummyLiveGame = lazy(() => import('../features/cards').then((m) => ({ default: m.RummyLiveGame })));
+const LobbyView = lazy(() => import('../features/lobby').then((m) => ({ default: m.LobbyView })));
+const StoreView = lazy(() => import('../features/store').then((m) => ({ default: m.StoreView })));
+const ProfileView = lazy(() => import('../features/profile').then((m) => ({ default: m.ProfileView })));
+const LeaderboardView = lazy(() => import('../features/leaderboard').then((m) => ({ default: m.LeaderboardView })));
+const TournamentListView = lazy(() => import('../features/tournament').then((m) => ({ default: m.TournamentListView })));
+const TournamentDetailView = lazy(() => import('../features/tournament').then((m) => ({ default: m.TournamentDetailView })));
+const AdminDashboard = lazy(() => import('../features/admin').then((m) => ({ default: m.AdminDashboard })));
 
 export function App() {
   const { i18n } = useTranslation('common');
@@ -195,6 +201,7 @@ export function App() {
         <IntroVideoGate>
         <OnboardingGate>
         <SyncProvider>
+          <Suspense fallback={<div style={{ padding: 24, textAlign: 'center', color: '#fff' }}>Loading...</div>}>
           <Routes>
             {/* Landing page without Layout */}
             <Route path="/" element={<LandingPage />} />
@@ -221,6 +228,7 @@ export function App() {
             <Route path="/responsible-gaming" element={<ResponsibleGamingPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </Suspense>
         </SyncProvider>
         </OnboardingGate>
         </IntroVideoGate>

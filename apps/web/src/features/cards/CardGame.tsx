@@ -10,65 +10,7 @@ import { motion } from 'framer-motion';
 import { playSound } from '../../shared/audio';
 import { RUMMY_INTRO_VIDEO_URL } from '../../config/videoUrls';
 import { fullScreenVideoStyle } from '../../config/videoStyles';
-
-const COLORS = ['#e53935', '#1e88e5', '#43a047', '#fb8c00'] as const; // אדום, כחול, ירוק, כתום
-const NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as const;
-const COPIES = 2; // שני עותקים מכל אבן
-
-export interface Tile {
-  number: number;
-  color: string;
-  id: string;
-}
-
-function createTiles(): Tile[] {
-  const tiles: Tile[] = [];
-  COLORS.forEach((color) => {
-    NUMBERS.forEach((num) => {
-      for (let c = 0; c < COPIES; c++) {
-        tiles.push({
-          number: num,
-          color,
-          id: `${num}-${color}-${c}-${Math.random().toString(36).slice(2, 9)}`,
-        });
-      }
-    });
-  });
-  return tiles;
-}
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-/** קבוצה תקנית: 3–4 אבנים עם אותו מספר, צבעים שונים */
-function isValidSet(tiles: Tile[]): boolean {
-  if (tiles.length < 3 || tiles.length > 4) return false;
-  const num = tiles[0].number;
-  const colors = new Set(tiles.map((t) => t.color));
-  return tiles.every((t) => t.number === num) && colors.size === tiles.length;
-}
-
-/** סדרה תקנית: 3+ אבנים באותו צבע, מספרים עוקבים */
-function isValidRun(tiles: Tile[]): boolean {
-  if (tiles.length < 3) return false;
-  const color = tiles[0].color;
-  const sorted = [...tiles].sort((a, b) => a.number - b.number);
-  if (!sorted.every((t) => t.color === color)) return false;
-  for (let i = 1; i < sorted.length; i++) {
-    if (sorted[i].number !== sorted[i - 1].number + 1) return false;
-  }
-  return true;
-}
-
-function isValidGroup(tiles: Tile[]): boolean {
-  return isValidSet(tiles) || isValidRun(tiles);
-}
+import { createTiles, shuffleTiles, dealTiles, isValidGroup, isValidRun, type Tile } from './rummyUtils';
 
 const NEON_CYAN = '#00f5d4';
 const NEON_PINK = '#f72585';
@@ -88,7 +30,7 @@ export function TouchCardGame({ onPlaceGroup, onWin }: TouchCardGameProps = {}) 
   const navigate = useNavigate();
   const [showIntroVideo, setShowIntroVideo] = useState(!!RUMMY_INTRO_VIDEO_URL);
   const introVideoRef = useRef<HTMLVideoElement>(null);
-  const [pool, setPool] = useState<Tile[]>(() => shuffle(createTiles()));
+  const [pool, setPool] = useState<Tile[]>(() => shuffleTiles(createTiles()));
   const [hand, setHand] = useState<Tile[]>([]);
   const [table, setTable] = useState<Table>([]);
   const [selectedHandIndices, setSelectedHandIndices] = useState<Set<number>>(new Set());
@@ -106,8 +48,8 @@ export function TouchCardGame({ onPlaceGroup, onWin }: TouchCardGameProps = {}) 
 
   const dealInitialHand = () => {
     if (pool.length < handSize) return;
-    const drawn = pool.slice(0, handSize);
-    setPool((p) => p.slice(handSize));
+    const { drawn, rest } = dealTiles(pool, handSize);
+    setPool(rest);
     setHand(drawn);
     setMessage('בחר אבנים ליד ואז "הנח על השולחן", או "גרוף" כדי לקחת אבן.');
   };
@@ -193,7 +135,7 @@ export function TouchCardGame({ onPlaceGroup, onWin }: TouchCardGameProps = {}) 
 
   const handleNewGame = () => {
     playSound('neon_click');
-    const tiles = shuffle(createTiles());
+    const tiles = shuffleTiles(createTiles());
     setPool(tiles);
     setHand([]);
     setTable([]);
