@@ -11,7 +11,7 @@ export function ResponsibleGamingPage() {
         משחק אחראי — Neon Oasis
       </Typography>
       <Typography variant="body2" paragraph sx={{ color: '#e0e0e0' }}>
-        1. המטבעות באפליקציה הם וירטואליים בלבד ואין להם ערך כספי לפדיון. אין להחשיב את השירות כהמרה לכסף אמיתי.
+        1. פלטפורמת משחקי מיומנות (Skill-Based). יתרת פרס (Prize Balance) מניצחונות ומתנות ניתנת לפדיון בהתאם לתקנון. Balance (Play Money) לשימוש במשחקים בלבד. אל תשחק/י מעבר ליכולתך.
       </Typography>
       <Typography variant="body2" paragraph sx={{ color: '#e0e0e0' }}>
         2. אנו ממליצים להגביל זמן משחק יומי ולקחת הפסקות. ניתן להגדיר תזכורות במכשיר.

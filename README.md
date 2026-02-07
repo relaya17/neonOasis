@@ -85,29 +85,33 @@ git push -u origin main
 
 ### What's Built ✅
 - React 18 + Vite + TypeScript frontend
-- 3D Backgammon with physics (Cannon.js)
+- 3D Backgammon with physics (Cannon.js) + **Pot/Entry fee/Rake** (Skill-Based)
+- **Snooker** — ניאון, מקלות פרימיום, גיר/בירה, קופה ומשחק עם דמי כניסה
+- **Poker** (Texas) + **Pot, משחק עם קופה**, BANK
 - Real-time multiplayer (Socket.io)
 - TikTok-style feed (VegasFeed)
-- Virtual wallet & store
+- **Live Sidebar** גנרי — מונה צופים, זרם מתנות, כפתורי מתנות (סנוקר/ששבש/פוקר)
+- Virtual wallet & store; **Prize Balance** (לפדיון) + **Cash Out** (פאנל פדיון)
 - Admin dashboard
 - Legal pages (Terms, Privacy, Responsible Gaming)
 - PWA support (Capacitor)
 - RTL support (Hebrew/Arabic)
+- **Responsive** — AppBar, Sidebar (מוסתר במובייל), פרופיל ולובי
 
 ### What's Missing 🔨
 - **AI Guardian** (age verification) — 🔴 Critical
 - **Geo-fencing** (Israeli IP detection) — 🔴 Critical
 - **Certified RNG** (provably fair dice) — 🟡 High
-- **Snooker game** — 🟡 Medium
 - **VIP Store** (3D skins & badges) — 🟡 Medium
 - **Tournament system** — 🟡 Medium
 - **Daily rewards** (Spin the Wheel) — 🟢 Low
+- **Cash Out API** (בקשת פדיון + אישור אדמין) — 🟡 Medium
 
 See **[GAP_ANALYSIS.md](./GAP_ANALYSIS.md)** for detailed breakdown.
 
 ---
 
-אפיון טכני — Real-Time Sync, AI Guardian, React 18, Node.js, MUI + Framer Motion.
+אפיון טכני — Real-Time Sync, AI Guardian, React 18, Node.js, MUI + Framer Motion. **Skill-Based Gaming**: Pot, דמי כניסה, Rake, Prize Balance, Cash Out — ראה `docs/SKILL_BASED_GAMING_SPEC.md`.
 
 ## מבנה הפרויקט (Project Structure)
 
@@ -202,12 +206,13 @@ non/
 
 ## מסד נתונים (PostgreSQL)
 
-- **users**: id, username, avatar_id, is_verified, balance (Decimal), level.
-- **transactions**: כל שינוי ב-balance נרשם כאן (ביקורת); type: purchase, win, bet, fee, gift, market_sale, market_buy.
-- **items_inventory**: owner_id, item_type, rarity, is_for_sale, price (מרקטפלייס).
-- **admin_revenues**: עמלות הבית (משחקים, מרקטפלייס).
+- **users**: id, username, avatar_id, is_verified, **balance** (משחק), **prize_balance** (לפדיון), level.
+- **transactions**: כל שינוי נרשם כאן; type: purchase, win, bet, fee, gift_sent, gift_received, **withdrawal**; **status**: PENDING | COMPLETED | FAILED (לבקשות פדיון).
+- **items_inventory**: owner_id, item_type, **item_id**, rarity, is_for_sale, price, **metadata** (Json).
+- **admin_revenues**: עמלות הבית (משחקים, Rake).
 
-הרצת סכמה: `psql $DATABASE_URL -f apps/api/src/db/schema.sql`
+הרצת סכמה: `psql $DATABASE_URL -f apps/api/src/db/schema.sql`  
+מיגרציות: `004` (oasis_balance), `013` (prize_balance, transaction status, item_id, metadata) — ראה `apps/api/src/db/migrations/`.
 
 ## ארנק ומשחק (gameService)
 

@@ -5,6 +5,8 @@
 
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { Box, Button, Typography, Paper } from '@mui/material';
+import { useLiveStore } from '../../shared/store/liveStore';
+import { GameLiveOverlay } from '../../shared/components/GameLiveOverlay';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { createDeck, shuffleDeck, type Card } from './deck';
@@ -17,6 +19,9 @@ const NEON_CYAN = '#00f5d4';
 const NEON_PINK = '#f72585';
 const NEON_GOLD = '#ffd700';
 const TABLE_GREEN = '#0d5c2e';
+const INITIAL_COINS = 1000;
+const ENTRY_FEE = 50;
+const TABLE_RAKE = 0.1;
 
 type Phase = 'idle' | 'dealing' | 'preflop' | 'flop' | 'turn' | 'river' | 'showdown';
 
@@ -50,7 +55,11 @@ export function PokerTable() {
   const [showdownDone, setShowdownDone] = useState(false);
   const [winner, setWinner] = useState<'player' | 'ai' | null>(null);
   const [showIntroVideo, setShowIntroVideo] = useState(true);
+  const [giftToast, setGiftToast] = useState<{ icon: string } | null>(null);
+  const [userCoins, setUserCoins] = useState(INITIAL_COINS);
+  const paidOutRef = useRef(false);
   const introVideoRef = useRef<HTMLVideoElement>(null);
+  const registerGiftHandler = useLiveStore((s) => s.registerGiftHandler);
 
   useEffect(() => {
     if (showIntroVideo && introVideoRef.current) {
@@ -58,23 +67,44 @@ export function PokerTable() {
     }
   }, [showIntroVideo]);
 
+  useEffect(() => {
+    const handler = (gift: { id: string; label: string; icon: string }) => {
+      setGiftToast({ icon: gift.icon });
+      setTimeout(() => setGiftToast(null), 2200);
+    };
+    registerGiftHandler(handler);
+    return () => registerGiftHandler(null);
+  }, [registerGiftHandler]);
+
   const runDealerLine = useCallback((msg: string, delay = 0) => {
     if (delay) setTimeout(() => setDealerMessage(msg), delay);
     else setDealerMessage(msg);
   }, []);
 
-  const startHand = useCallback(() => {
+  const startHand = useCallback((withEntry = false) => {
+    if (withEntry && userCoins < ENTRY_FEE) {
+      if (typeof window !== 'undefined' && window.alert) {
+        window.alert('אין מספיק מטבעות לדמי כניסה.');
+      }
+      return;
+    }
     playSound('neon_click');
+    if (withEntry) {
+      setUserCoins((c) => c - ENTRY_FEE);
+      setPot(ENTRY_FEE);
+    } else {
+      setPot(20);
+    }
     setPhase('dealing');
     setShowdownDone(false);
     setWinner(null);
+    paidOutRef.current = false;
     setDealerMessage(DEALER_MESSAGES.dealing);
     const deck = shuffleDeck(createDeck());
     const { player, ai, community, rest } = dealTexas(deck);
     setPlayerHand(player);
     setAiHand(ai);
     setCommunityCards(community.map((c) => ({ ...c, faceUp: false })));
-    setPot(20);
     setPlayerBet(0);
     playSound('card_flip');
     setTimeout(() => {
@@ -82,7 +112,7 @@ export function PokerTable() {
       runDealerLine(DEALER_MESSAGES.preflop);
       setCommunityCards((prev) => prev.map((c, i) => (i < 3 ? { ...c, faceUp: true } : c)));
     }, 800);
-  }, [runDealerLine]);
+  }, [runDealerLine, userCoins]);
 
   const doFlop = useCallback(() => {
     setPhase('flop');
@@ -118,11 +148,18 @@ export function PokerTable() {
     if (w === 'player') {
       playSound('win');
       playVoice('win');
+      if (pot > 0 && !paidOutRef.current) {
+        paidOutRef.current = true;
+        const afterRake = Math.floor(pot * (1 - TABLE_RAKE));
+        setUserCoins((c) => c + afterRake);
+        setPot(0);
+      }
     } else if (w === 'ai') {
       playSound('lose');
       playVoice('loss');
+      if (pot > 0) setPot(0);
     }
-  }, [communityCards, playerHand, aiHand]);
+  }, [communityCards, playerHand, aiHand, pot]);
 
   const canAdvance = phase === 'preflop' || phase === 'flop' || phase === 'turn' || phase === 'river';
   const advancePhase = () => {
@@ -191,7 +228,7 @@ export function PokerTable() {
               '&:hover': { bgcolor: NEON_GOLD, opacity: 0.9 },
             }}
           >
-            כניסה לשולחן
+            כניסה למשחק
           </Button>
         </Box>
       </Box>
@@ -208,17 +245,50 @@ export function PokerTable() {
         position: 'relative',
       }}
     >
-      {/* Header: Back, Live badge, Spectators, Tip */}
+      <GameLiveOverlay gameName="פוקר" />
+      {giftToast && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 50,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 0.5,
+            animation: 'fadeInOut 2.2s ease-out',
+            '@keyframes fadeInOut': {
+              '0%': { opacity: 0, transform: 'translate(-50%, -50%) scale(0.5)' },
+              '20%': { opacity: 1, transform: 'translate(-50%, -50%) scale(1.1)' },
+              '80%': { opacity: 1 },
+              '100%': { opacity: 0, transform: 'translate(-50%, -50%) scale(1)' },
+            },
+          }}
+        >
+          <Typography sx={{ fontSize: '3rem' }}>{giftToast.icon}</Typography>
+          <Typography sx={{ color: NEON_GOLD, fontWeight: 'bold' }}>מתנה!</Typography>
+        </Box>
+      )}
+      {/* Header: כמו סנוקר/ששבש — חזרה, BANK, קופה */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, flexWrap: 'wrap', gap: 1 }}>
-        <Button size="small" onClick={() => navigate('/')} sx={{ color: NEON_CYAN, borderColor: NEON_CYAN }} variant="outlined">
+        <Button
+          size="small"
+          onClick={() => { playSound('neon_click'); navigate('/'); }}
+          sx={{ color: NEON_CYAN, borderColor: NEON_CYAN, '&:hover': { bgcolor: 'rgba(0,245,212,0.1)' } }}
+          variant="outlined"
+        >
           ← חזרה
         </Button>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography sx={{ color: '#f44', fontSize: '0.75rem', fontWeight: 'bold' }}>🔴 Live</Typography>
-          <Typography sx={{ color: '#888', fontSize: '0.75rem' }}>צופים: 0</Typography>
-          <Button size="small" disabled sx={{ color: NEON_GOLD, fontSize: '0.7rem' }}>
-            שלח טיפ (בקרוב)
-          </Button>
+        <Typography variant="h6" sx={{ color: NEON_GOLD, fontWeight: 'bold', textShadow: `0 0 20px ${NEON_GOLD}40` }}>
+          פוקר
+        </Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, alignItems: 'flex-end' }}>
+          <Typography sx={{ color: NEON_GOLD, fontSize: '0.8rem', fontWeight: 'bold' }}>BANK: {userCoins} 🪙</Typography>
+          {pot > 0 && (
+            <Typography sx={{ color: NEON_CYAN, fontSize: '0.75rem', fontWeight: 'bold' }}>💰 קופה: {pot} 🪙</Typography>
+          )}
         </Box>
       </Box>
 
@@ -352,9 +422,14 @@ export function PokerTable() {
           {/* Actions */}
           <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
             {phase === 'idle' && (
-              <Button variant="contained" onClick={startHand} sx={{ bgcolor: NEON_CYAN, color: '#000', fontWeight: 'bold' }}>
-                התחל משחק
-              </Button>
+              <>
+                <Button variant="contained" onClick={() => startHand(false)} sx={{ bgcolor: NEON_CYAN, color: '#000', fontWeight: 'bold' }}>
+                  התחל משחק
+                </Button>
+                <Button variant="outlined" onClick={() => startHand(true)} disabled={userCoins < ENTRY_FEE} sx={{ borderColor: NEON_GOLD, color: NEON_GOLD, fontWeight: 'bold' }}>
+                  משחק עם קופה ({ENTRY_FEE} 🪙)
+                </Button>
+              </>
             )}
             {canAdvance && (
               <Button variant="contained" onClick={advancePhase} sx={{ bgcolor: NEON_PINK, color: '#000', fontWeight: 'bold' }}>
@@ -366,8 +441,11 @@ export function PokerTable() {
                 <Typography sx={{ color: winner === 'player' ? '#0f0' : winner === 'ai' ? '#f44' : '#ff0', fontWeight: 'bold' }}>
                   {winner === 'player' ? 'ניצחת!' : winner === 'ai' ? 'היריב ניצח' : 'תיקו'}
                 </Typography>
-                <Button variant="outlined" onClick={startHand} sx={{ borderColor: NEON_CYAN, color: NEON_CYAN }}>
+                <Button variant="outlined" onClick={() => startHand(false)} sx={{ borderColor: NEON_CYAN, color: NEON_CYAN }}>
                   משחק נוסף
+                </Button>
+                <Button variant="outlined" onClick={() => startHand(true)} disabled={userCoins < ENTRY_FEE} sx={{ borderColor: NEON_GOLD, color: NEON_GOLD }}>
+                  משחק עם קופה ({ENTRY_FEE} 🪙)
                 </Button>
               </>
             )}

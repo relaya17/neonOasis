@@ -77,7 +77,14 @@ const NEON_GOLD = '#ffd700';
 /** טבלה = מערך קבוצות; כל קבוצה = מערך אבנים */
 type Table = Tile[][];
 
-export function TouchCardGame() {
+export interface TouchCardGameProps {
+  /** נקרא כשמונחת קבוצה/סדרה תקנית על השולחן (למשל ל-BOOM בלייב) */
+  onPlaceGroup?: (tilesCount: number, isRun: boolean) => void;
+  /** נקרא כשחקן רוקן את היד (ניצחון) */
+  onWin?: () => void;
+}
+
+export function TouchCardGame({ onPlaceGroup, onWin }: TouchCardGameProps = {}) {
   const navigate = useNavigate();
   const [showIntroVideo, setShowIntroVideo] = useState(!!RUMMY_INTRO_VIDEO_URL);
   const introVideoRef = useRef<HTMLVideoElement>(null);
@@ -142,13 +149,18 @@ export function TouchCardGame() {
       return;
     }
     playSound('chip_stack');
+    const isRun = isValidRun(selectedTiles);
+    const count = selectedTiles.length;
     const indices = Array.from(selectedHandIndices).sort((a, b) => b - a);
     setHand((h) => indices.reduce((acc, i) => acc.filter((_, idx) => idx !== i), [...h]));
     setTable((t) => [...t, [...selectedTiles]]);
     setSelectedHandIndices(new Set());
     setMessage('');
-    if (hand.length - selectedTiles.length === 0) {
+    onPlaceGroup?.(count, isRun);
+    const newHandSize = hand.length - count;
+    if (newHandSize === 0) {
       setMessage('🎉 ניצחת! רוקנת את היד.');
+      onWin?.();
     }
   };
 

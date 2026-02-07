@@ -9,12 +9,22 @@ import { setIo } from '../sockets/ioRef';
 import { registerUserSocket } from '../sockets/userSockets';
 
 export function initSocket(httpServer: HttpServer) {
+  const corsOriginList = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map((s) => s.trim())
+    : null;
   const io = new Server(httpServer, {
-    cors: { 
-      origin: process.env.CORS_ORIGIN ?? /^http:\/\/localhost:\d+$/,
-      credentials: true 
+    cors: {
+      origin: corsOriginList
+        ? corsOriginList
+        : (origin: string, callback: (err: Error | null, allow?: boolean) => void) => {
+            callback(null, !origin || /^http:\/\/localhost(:\d+)?$/.test(origin));
+          },
+      credentials: true,
+      methods: ['GET', 'POST'],
     },
     transports: ['websocket', 'polling'],
+    pingTimeout: 6000,
+    pingInterval: 4000,
   });
 
   // Scale: Redis Adapter — Queue ו-broadcast בין instances (Production)

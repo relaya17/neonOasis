@@ -10,6 +10,7 @@ import { geoRoutes } from './geo';
 import { iapRoutes } from './iap';
 import { tournamentsRoutes } from './tournaments';
 import { aiRoutes } from './ai';
+import { socketRoutes } from './socket';
 
 export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(healthRoutes);
@@ -23,4 +24,5 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(iapRoutes);
   await fastify.register(tournamentsRoutes);
   await fastify.register(aiRoutes);
+  await fastify.register(socketRoutes);
 }

@@ -16,6 +16,7 @@ export type SoundEvent =
   | 'lose'
   | 'notification'
   | 'coin'
+  | 'gift_sent'
   | 'card_flip'
   | 'chip_stack';
 
@@ -86,6 +87,22 @@ class AdvancedSoundService {
   private originalMusicVolume: number = 0.4;
 
   /**
+   * Base URL for sound files: from VITE_SOUNDS_BASE_URL (network/CDN) or same origin.
+   */
+  private getSoundBase(): string {
+    const fromEnv =
+      typeof import.meta !== 'undefined' &&
+      (import.meta.env as { VITE_SOUNDS_BASE_URL?: string }).VITE_SOUNDS_BASE_URL;
+    if (fromEnv && typeof fromEnv === 'string') {
+      return fromEnv.endsWith('/') ? fromEnv.slice(0, -1) : fromEnv;
+    }
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const base = (typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL) || '';
+    const baseNorm = base.endsWith('/') ? base.slice(0, -1) : base;
+    return origin ? `${origin}${baseNorm || ''}` : baseNorm || '';
+  }
+
+  /**
    * Initialize and preload all audio assets
    */
   async preloadSounds(): Promise<void> {
@@ -110,6 +127,7 @@ class AdvancedSoundService {
    * Load sound effects with spatial audio support
    */
   private async loadSoundEffects(): Promise<void> {
+    const soundBase = this.getSoundBase();
     const soundEvents: SoundEvent[] = [
       'click',
       'neon_click',
@@ -119,12 +137,14 @@ class AdvancedSoundService {
       'lose',
       'notification',
       'coin',
+      'gift_sent',
       'card_flip',
       'chip_stack',
     ];
 
     for (const event of soundEvents) {
-      const soundPath = `/sounds/${event}.mp3`;
+      const file = event === 'gift_sent' ? 'coin' : event;
+      const soundPath = `${soundBase}/sounds/${file}.mp3`;
       this.sounds.set(
         event,
         new Howl({
@@ -143,6 +163,7 @@ class AdvancedSoundService {
    * Load voice narration
    */
   private async loadVoiceNarration(): Promise<void> {
+    const soundBase = this.getSoundBase();
     const voiceEvents: VoiceEvent[] = [
       'welcome',
       'stake',
@@ -155,7 +176,7 @@ class AdvancedSoundService {
     ];
 
     for (const event of voiceEvents) {
-      const voicePath = `/sounds/voice_${event}_${this.state.language}.mp3`;
+      const voicePath = `${soundBase}/sounds/voice_${event}_${this.state.language}.mp3`;
       this.voices.set(
         event,
         new Howl({
@@ -174,6 +195,7 @@ class AdvancedSoundService {
    * Load background music layers for adaptive music
    */
   private async loadBackgroundMusic(): Promise<void> {
+    const soundBase = this.getSoundBase();
     const musicLayers: { layer: MusicLayer; file: string }[] = [
       { layer: 'base', file: 'bgm_base_loop.mp3' },
       { layer: 'tension', file: 'bgm_tension_layer.mp3' },
@@ -185,7 +207,7 @@ class AdvancedSoundService {
       this.music.set(
         layer,
         new Howl({
-          src: [`/sounds/${file}`],
+          src: [`${soundBase}/sounds/${file}`],
           volume: layer === 'base' ? this.state.musicVolume : 0,
           loop: true,
           preload: true,
@@ -388,6 +410,7 @@ class AdvancedSoundService {
       lose: 300,
       notification: 900,
       coin: 1500,
+      gift_sent: 1500,
       card_flip: 700,
       chip_stack: 500,
     };

@@ -19,3 +19,18 @@ export function emitBalanceUpdate(userId: string, balance: string) {
     ioInstance.to(id).emit(SOCKET_EVENTS.BALANCE_UPDATED, { balance });
   }
 }
+
+/** ניתוק כל ה-sockets של משתמש (למשל ברענון/סגירת דף — כשהלקוח שולח sendBeacon) */
+export function disconnectUserSockets(userId: string): number {
+  if (!ioInstance) return 0;
+  const socketIds = getSocketIdsForUser(userId);
+  let count = 0;
+  for (const id of socketIds) {
+    const socket = ioInstance.sockets.sockets.get(id);
+    if (socket) {
+      socket.disconnect(true);
+      count++;
+    }
+  }
+  return count;
+}

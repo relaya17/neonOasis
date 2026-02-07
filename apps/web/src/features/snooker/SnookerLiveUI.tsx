@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Avatar, List, ListItem, Fade } from '@mui/material';
 import FavoriteIcon from '@mui/icons-material/Favorite';
+import { GIFT_PRICES } from './snookerCues';
 
 const NEON_PINK = '#f72585';
 const NEON_CYAN = '#00f5d4';
@@ -14,6 +15,8 @@ const GIFTS = [
   { id: 'rose', icon: '🌹', label: 'Rose', color: '#ff2d55' },
   { id: 'diamond', icon: '💎', label: 'Diamond', color: '#00f2ea' },
   { id: 'crown', icon: '👑', label: 'Gold Crown', color: '#ffd700' },
+  { id: 'chalk', icon: '🩵', label: 'Chalk', color: '#5c9ead' },
+  { id: 'beer', icon: '🍺', label: 'Beer', color: '#daa520' },
 ];
 
 const DEMO_MESSAGES = [
@@ -207,6 +210,7 @@ export function SnookerLiveUI(props?: SnookerLiveUIProps) {
             </Box>
             <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.65rem', mt: 0.5 }}>
               {gift.label}
+              {GIFT_PRICES[gift.id] != null && ` 🪙${GIFT_PRICES[gift.id]}`}
             </Typography>
           </Box>
         ))}

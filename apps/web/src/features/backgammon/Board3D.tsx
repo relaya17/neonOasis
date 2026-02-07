@@ -4,29 +4,42 @@ import { Canvas } from '@react-three/fiber';
 import { Physics, usePlane } from '@react-three/cannon';
 import { OrbitControls, Stars } from '@react-three/drei';
 import type { Mesh } from 'three';
+import { spreadMaterialProps } from '../../types/r3f-materials';
 import { Dice } from './Dice';
+import { Checker } from './Checker';
+import { DraggableChecker } from './DraggableChecker';
+import { MoveIndicator } from './MoveIndicator';
+import { getPointPosition, getCheckerPosition, getPointCenter } from './backgammonBoardGeometry';
 import { useBackgammonStore } from './store';
 import { getLegalMoves, applyMove, getWinner } from '@neon-oasis/shared';
 import type { BackgammonMove, BackgammonState } from '@neon-oasis/shared';
 import { socketService } from '../../api/socketService';
 import { hapticLand, hapticClick, useWebGLContextLoss, useAIDealer } from '../../shared/hooks';
 import { playSound } from '../../shared/audio';
-import { useNavigate } from 'react-router-dom';
 import { useApiStatusStore } from '../../shared/store/apiStatus';
 import { ProvablyFairDialog } from '../game/ProvablyFairDialog';
 import { AIDealerOverlay } from '../game/AIDealerOverlay';
 import { useWalletStore } from '../store';
+import { getApiBase } from '../../config/apiBase';
 
-const API_URL = import.meta.env.VITE_API_URL ?? '';
-/** צבע כרטיס השש-בש בדף הבית — משמש לרקע ומסגרת */
+const getApi = () => getApiBase() || '';
 const NEON_CYAN = '#00f5d4';
+const NEON_PINK = '#f72585';
+const NEON_GOLD = '#ffd700';
+const ELECTRIC_BLUE = '#00ffff';
 
-/** לוח שש-בש תלת-ממדי — תאורת ניאון, קוביות פיזיקליות, Stars ברקע */
-export function BackgammonBoard3D() {
+export interface BackgammonBoard3DProps {
+  tableId?: string;
+  onMove?: (from: number | 'bar', to: number | 'off') => void;
+  /** נקרא כשקורה אירוע דרמטי (למשל סוף משחק) */
+  onEvent?: (message: string) => void;
+}
+
+/** לוח שש-בש תלת-ממדי — תאורת ניאון, קוביות פיזיקליות, גרירה */
+export function BackgammonBoard3D({ tableId: _tableId, onMove, onEvent }: BackgammonBoard3DProps = {}) {
   const [rolling, setRolling] = useState(false);
   const [provablyFairOpen, setProvablyFairOpen] = useState(false);
   const { state, setState, reset: resetGame } = useBackgammonStore();
-  const navigate = useNavigate();
   const apiOnline = useApiStatusStore((s) => s.online);
   const { webglLost, onCanvasCreated } = useWebGLContextLoss();
   const userId = useWalletStore((s) => s.userId);
@@ -47,7 +60,7 @@ export function BackgammonBoard3D() {
     const seed = `client-${Math.random().toString(36).slice(2, 10)}-${Date.now().toString(36)}`;
     setClientSeed(seed);
     const controller = new AbortController();
-    fetch(`${API_URL}/api/games/rng/commit`, {
+    fetch(`${getApi()}/api/games/rng/commit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ gameId, clientSeed: seed }),
@@ -79,7 +92,7 @@ export function BackgammonBoard3D() {
     hapticClick();
     setRolling(true);
     const controller = new AbortController();
-    fetch(`${API_URL}/api/games/rng/roll?gameId=${encodeURIComponent(gameId)}&clientSeed=${encodeURIComponent(clientSeed)}`, {
+    fetch(`${getApi()}/api/games/rng/roll?gameId=${encodeURIComponent(gameId)}&clientSeed=${encodeURIComponent(clientSeed)}`, {
       signal: controller.signal,
     })
       .then(async (res) => (res.ok ? res.json() : Promise.reject(new Error('roll failed'))))
@@ -107,6 +120,13 @@ export function BackgammonBoard3D() {
 
   const legalMoves = state.dice !== null ? getLegalMoves(state) : [];
   const winner = getWinner(state);
+
+  const lastWinnerRef = useRef<number>(-1);
+  useEffect(() => {
+    if (winner === -1 || !onEvent || winner === lastWinnerRef.current) return;
+    lastWinnerRef.current = winner;
+    onEvent(`🏆 סוף משחק! המנצח: ${winner === 0 ? 'ציאן' : 'ורוד'}`);
+  }, [winner, onEvent]);
 
   const aiTurnDoneRef = useRef(false);
   useEffect(() => {
@@ -146,7 +166,7 @@ export function BackgammonBoard3D() {
 
   const handleReveal = () => {
     const controller = new AbortController();
-    fetch(`${API_URL}/api/games/rng/reveal?gameId=${encodeURIComponent(gameId)}`, {
+    fetch(`${getApi()}/api/games/rng/reveal?gameId=${encodeURIComponent(gameId)}`, {
       signal: controller.signal,
     })
       .then(async (res) => (res.ok ? res.json() : Promise.reject(new Error('reveal failed'))))
@@ -170,111 +190,100 @@ export function BackgammonBoard3D() {
   return (
     <MuiBox
       sx={{
-        width: 'calc(100% - 24px)',
-        height: 'calc(100vh - 24px)',
-        maxWidth: 'calc(100vw - 24px)',
-        margin: 3,
+        width: '100%',
+        height: '100%',
+        minHeight: 320,
         position: 'relative',
-        bgcolor: 'rgba(26, 26, 26, 0.98)',
-        background: `radial-gradient(circle at 50% 50%, ${NEON_CYAN}12 0%, #0a0a0b 40%, #000 100%)`,
-        border: `4px solid ${NEON_CYAN}`,
-        borderRadius: 3,
-        boxShadow: `0 0 40px ${NEON_CYAN}40, inset 0 0 80px rgba(0,0,0,0.5)`,
+        borderRadius: { xs: 2, sm: 4 },
+        overflow: 'hidden',
+        background: 'linear-gradient(165deg, rgba(8,20,28,0.97) 0%, rgba(4,12,18,0.98) 50%, #050810 100%)',
+        border: '1px solid rgba(0,245,212,0.35)',
+        boxShadow: `
+          0 0 0 1px rgba(0,255,255,0.08),
+          0 8px 32px rgba(0,0,0,0.6),
+          inset 0 1px 0 rgba(255,255,255,0.03)
+        `,
       }}
     >
-      {/* Compact Player Info - Mobile Responsive */}
+      {/* Turn indicator - compact pill */}
       <MuiBox
         sx={{
           position: 'absolute',
-          top: { xs: 8, sm: 16 },
-          right: { xs: 8, sm: 16 },
-          zIndex: 20,
-          bgcolor: 'rgba(0, 0, 0, 0.7)',
-          border: '1px solid #00ffff',
-          borderRadius: 1,
-          px: { xs: 1, sm: 1.5 },
-          py: { xs: 0.5, sm: 1 },
-          backdropFilter: 'blur(5px)',
-        }}
-      >
-        <MuiBox sx={{ display: 'flex', gap: { xs: 1, sm: 2 }, alignItems: 'center' }}>
-          <Typography sx={{ 
-            color: state.turn === 0 ? '#00ffff' : '#666', 
-            fontSize: { xs: '0.75rem', sm: '0.85rem' },
-            fontWeight: state.turn === 0 ? 'bold' : 'normal'
-          }}>
-            🔵 {userId?.slice(0, 6) || 'You'}
-          </Typography>
-          <Typography sx={{ color: '#ffd700', fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>VS</Typography>
-          <Typography sx={{ 
-            color: state.turn === 1 ? '#ff00ff' : '#666',
-            fontSize: { xs: '0.75rem', sm: '0.85rem' },
-            fontWeight: state.turn === 1 ? 'bold' : 'normal'
-          }}>
-            🔴 AI
-          </Typography>
-        </MuiBox>
-      </MuiBox>
-      
-      <MuiBox
-        sx={{
-          position: 'absolute',
-          top: { xs: 8, sm: 16 },
-          left: { xs: 8, sm: 16 },
+          top: 12,
+          left: '50%',
+          transform: 'translateX(-50%)',
           zIndex: 20,
           display: 'flex',
           alignItems: 'center',
           gap: 1,
+          px: 1.5,
+          py: 0.6,
+          borderRadius: 3,
+          bgcolor: 'rgba(0,0,0,0.6)',
+          border: '1px solid rgba(0,255,255,0.2)',
+          backdropFilter: 'blur(8px)',
         }}
       >
-        <Button
-          variant="outlined"
-          size={window.innerWidth < 600 ? 'small' : 'medium'}
-          onClick={() => navigate('/')}
+        <Typography
           sx={{
-            borderColor: '#00ffff',
-            color: '#00ffff',
-            fontSize: { xs: '0.75rem', sm: '0.875rem' },
-            '&:hover': { borderColor: '#00ffff', bgcolor: 'rgba(0,255,255,0.1)' },
+            color: state.turn === 0 ? ELECTRIC_BLUE : 'rgba(255,255,255,0.4)',
+            fontSize: '0.8rem',
+            fontWeight: state.turn === 0 ? 700 : 400,
           }}
         >
-          ← חזרה
-        </Button>
-        {apiOnline === false && (
-          <Typography
-            variant="caption"
-            sx={{
-              color: '#ff4d9a',
-              bgcolor: 'rgba(255, 0, 85, 0.12)',
-              border: '1px solid rgba(255, 0, 85, 0.3)',
-              px: 1,
-              py: 0.5,
-              borderRadius: 1,
-            }}
-          >
-            Offline — ה־API לא פעיל
-          </Typography>
-        )}
+          אתה
+        </Typography>
+        <Typography sx={{ color: NEON_GOLD, fontSize: '0.7rem' }}>•</Typography>
+        <Typography
+          sx={{
+            color: state.turn === 1 ? NEON_PINK : 'rgba(255,255,255,0.4)',
+            fontSize: '0.8rem',
+            fontWeight: state.turn === 1 ? 700 : 400,
+          }}
+        >
+          AI
+        </Typography>
       </MuiBox>
-      {/* Compact Status - Only when dice rolled */}
+      {apiOnline === false && (
+        <Typography
+          variant="caption"
+          sx={{
+            position: 'absolute',
+            top: 12,
+            left: 12,
+            zIndex: 20,
+            color: NEON_PINK,
+            bgcolor: 'rgba(255,77,154,0.15)',
+            border: '1px solid rgba(255,77,154,0.4)',
+            px: 1,
+            py: 0.5,
+            borderRadius: 1,
+            fontSize: '0.7rem',
+          }}
+        >
+          Offline
+        </Typography>
+      )}
+      {/* Dice result badge */}
       {state.dice && (
         <MuiBox
           sx={{
             position: 'absolute',
-            top: 16,
+            top: 48,
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 19,
-            bgcolor: 'rgba(0, 0, 0, 0.7)',
-            border: '1px solid #ffd700',
-            borderRadius: 1,
             px: 2,
-            py: 0.5,
-            backdropFilter: 'blur(5px)',
+            py: 0.75,
+            borderRadius: 2,
+            background: `linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,215,0,0.05))`,
+            border: '1px solid rgba(255,215,0,0.4)',
+            boxShadow: '0 0 20px rgba(255,215,0,0.15)',
+            backdropFilter: 'blur(6px)',
           }}
         >
-          <Typography sx={{ color: '#ffd700', fontSize: '0.9rem', fontWeight: 'bold' }}>
-            🎲 {state.dice[0]} • {state.dice[1]}
+          <Typography sx={{ color: NEON_GOLD, fontSize: '1rem', fontWeight: 700, letterSpacing: 1 }}>
+            🎲 {state.dice[0]} — {state.dice[1]}
           </Typography>
         </MuiBox>
       )}
@@ -301,7 +310,7 @@ export function BackgammonBoard3D() {
         <pointLight position={[5, 8, -5]} color="#f72585" intensity={0.6} />
 
         <Physics gravity={[0, -20, 0]}>
-          <BoardPlane />
+          <BoardPlane onMove={onMove} />
           {state.dice !== null && (
             <>
               <pointLight position={[-1.2, 3, 0]} color="#00f5d4" intensity={1.2} distance={4} decay={2} />
@@ -319,17 +328,19 @@ export function BackgammonBoard3D() {
         />
       </Canvas>
 
+      {/* Bottom control strip — one primary CTA, secondary row, then moves */}
       <MuiBox
         sx={{
           position: 'absolute',
-          bottom: 24,
+          bottom: 20,
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 10,
           display: 'flex',
           flexDirection: 'column',
-          gap: 1,
+          gap: 1.5,
           alignItems: 'center',
+          maxWidth: 'min(360px, 90vw)',
         }}
       >
         <Button
@@ -338,80 +349,130 @@ export function BackgammonBoard3D() {
           disabled={rolling || state.dice !== null}
           aria-label={rolling ? 'Rolling dice' : state.dice === null ? 'Roll dice' : `Dice: ${state.dice[0]}, ${state.dice[1]}`}
           sx={{
-            background: 'linear-gradient(90deg, #00f5d4, #f72585)',
-            boxShadow: state.dice === null ? '0 0 40px rgba(0,245,212,0.8)' : '0 0 20px rgba(0,245,212,0.5)',
-            fontSize: { xs: '1rem', sm: '1.2rem', md: '1.3rem' },
-            px: { xs: 3, sm: 4, md: 5 },
-            py: { xs: 1.2, sm: 1.5, md: 1.8 },
-            fontWeight: 'bold',
-            '&:hover': { boxShadow: '0 0 50px rgba(247,37,133,0.8)' },
-            '&:disabled': { boxShadow: '0 0 10px rgba(100,100,100,0.3)' },
+            background: state.dice === null
+              ? `linear-gradient(135deg, ${NEON_CYAN}, ${ELECTRIC_BLUE})`
+              : 'rgba(255,255,255,0.12)',
+            color: state.dice === null ? '#000' : 'rgba(255,255,255,0.7)',
+            boxShadow: state.dice === null
+              ? `0 0 24px rgba(0,245,212,0.5), 0 4px 12px rgba(0,0,0,0.3)`
+              : 'none',
+            fontSize: '1.05rem',
+            px: 4,
+            py: 1.4,
+            fontWeight: 700,
+            borderRadius: 2,
+            border: state.dice === null ? 'none' : '1px solid rgba(255,255,255,0.15)',
+            '&:hover': {
+              background: state.dice === null
+                ? `linear-gradient(135deg, ${NEON_CYAN}, ${ELECTRIC_BLUE})`
+                : 'rgba(255,255,255,0.18)',
+              boxShadow: state.dice === null ? `0 0 32px rgba(0,245,212,0.6)` : 'none',
+            },
+            '&:disabled': { color: 'rgba(255,255,255,0.5)' },
           }}
         >
-          {rolling ? '🎲 מגלגל...' : state.dice === null ? '🎲 זרוק / ROLL' : `✅ ${state.dice[0]} • ${state.dice[1]}`}
+          {rolling ? '🎲 מגלגל...' : state.dice === null ? '🎲 זרוק קוביות' : `✓ ${state.dice[0]} — ${state.dice[1]}`}
         </Button>
-        {state.dice !== null && (
+        <MuiBox sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {state.dice !== null && (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => setProvablyFairOpen(true)}
+              sx={{
+                borderColor: 'rgba(255,215,0,0.5)',
+                color: NEON_GOLD,
+                fontSize: '0.75rem',
+                borderRadius: 1.5,
+                py: 0.5,
+                '&:hover': { borderColor: NEON_GOLD, bgcolor: 'rgba(255,215,0,0.08)' },
+              }}
+            >
+              Provably Fair
+            </Button>
+          )}
           <Button
-            variant="outlined"
+            variant="text"
             size="small"
-            onClick={() => setProvablyFairOpen(true)}
+            onClick={handleReveal}
             sx={{
-              borderColor: '#ffd700',
-              color: '#ffd700',
+              color: 'rgba(255,255,255,0.6)',
               fontSize: '0.75rem',
-              '&:hover': { borderColor: '#ffd700', bgcolor: 'rgba(255,215,0,0.1)' },
+              '&:hover': { color: ELECTRIC_BLUE },
             }}
           >
-            🔒 Provably Fair
+            חשוף Seed
           </Button>
-        )}
-        <Button
-          variant="text"
-          size="small"
-          onClick={handleReveal}
-          sx={{ color: '#00ffff', fontSize: '0.75rem' }}
-        >
-          חשוף Seed
-        </Button>
+        </MuiBox>
         {winner !== -1 && (
-          <MuiBox sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, mt: 1 }}>
-            <Typography sx={{ color: '#00ff00', fontWeight: 'bold' }}>
-              {winner === 0 ? '🔵 אתה ניצחת!' : '🔴 ה-AI ניצח'}
+          <MuiBox
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 1,
+              mt: 0.5,
+              p: 1.5,
+              borderRadius: 2,
+              bgcolor: 'rgba(0,0,0,0.4)',
+              border: '1px solid rgba(0,255,255,0.2)',
+            }}
+          >
+            <Typography sx={{ color: winner === 0 ? NEON_CYAN : NEON_PINK, fontWeight: 700, fontSize: '1rem' }}>
+              {winner === 0 ? '🎉 אתה ניצחת!' : 'ה-AI ניצח'}
             </Typography>
             <Button
               variant="contained"
               size="small"
               onClick={() => { playSound('neon_click'); resetGame(); }}
-              sx={{ bgcolor: '#00f5d4', color: '#000', fontWeight: 'bold' }}
+              sx={{
+                bgcolor: NEON_CYAN,
+                color: '#000',
+                fontWeight: 700,
+                borderRadius: 1.5,
+                '&:hover': { bgcolor: ELECTRIC_BLUE },
+              }}
             >
               משחק חדש
             </Button>
           </MuiBox>
         )}
         {legalMoves.length > 0 && state.turn === 0 && winner === -1 && (
-          <MuiBox sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, justifyContent: 'center', mt: 1, maxWidth: 320 }}>
-            <Typography sx={{ width: '100%', color: '#aaa', fontSize: '0.75rem', textAlign: 'center' }}>
-              בחר מהלך:
+          <MuiBox
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 0.5,
+              justifyContent: 'center',
+              mt: 0.5,
+            }}
+          >
+            <Typography sx={{ width: '100%', color: 'rgba(255,255,255,0.5)', fontSize: '0.7rem', textAlign: 'center', mb: 0.25 }}>
+              בחר מהלך
             </Typography>
-            {legalMoves.slice(0, 12).map((move, i) => (
+            {legalMoves.slice(0, 10).map((move, i) => (
               <Button
                 key={i}
                 variant="outlined"
                 size="small"
                 onClick={() => handleApplyMove(move)}
                 sx={{
-                  borderColor: '#00f5d4',
-                  color: '#00f5d4',
+                  borderColor: 'rgba(0,245,212,0.5)',
+                  color: NEON_CYAN,
                   fontSize: '0.7rem',
-                  minWidth: 56,
-                  '&:hover': { borderColor: '#00f5d4', bgcolor: 'rgba(0,245,212,0.15)' },
+                  minWidth: 52,
+                  py: 0.4,
+                  borderRadius: 1.5,
+                  '&:hover': { borderColor: NEON_CYAN, bgcolor: 'rgba(0,245,212,0.1)' },
                 }}
               >
                 {move.from === 'bar' ? 'Bar' : move.from}→{move.to === 'off' ? 'Off' : move.to}
               </Button>
             ))}
-            {legalMoves.length > 12 && (
-              <Typography sx={{ color: '#888', fontSize: '0.7rem' }}>+{legalMoves.length - 12} עוד</Typography>
+            {legalMoves.length > 10 && (
+              <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', alignSelf: 'center' }}>
+                +{legalMoves.length - 10}
+              </Typography>
             )}
           </MuiBox>
         )}
@@ -426,10 +487,11 @@ export function BackgammonBoard3D() {
               setState((s: BackgammonState) => ({ ...s, turn: 1, dice: [d1, d2], lastMoveAt: Date.now() }));
             }}
             sx={{
-              borderColor: '#ffd700',
-              color: '#ffd700',
-              mt: 1,
-              '&:hover': { borderColor: '#ffd700', bgcolor: 'rgba(255,215,0,0.1)' },
+              borderColor: 'rgba(255,215,0,0.5)',
+              color: NEON_GOLD,
+              borderRadius: 1.5,
+              fontSize: '0.8rem',
+              '&:hover': { borderColor: NEON_GOLD, bgcolor: 'rgba(255,215,0,0.08)' },
             }}
           >
             אין מהלך — העבר תור
@@ -490,54 +552,35 @@ export function BackgammonBoard3D() {
   );
 }
 
-/** לוח שש-בש מעוצב - 24 נקודות (משולשים), כלים, פס מרכזי — מראה פרימיום ניאון */
-function BoardPlane() {
-  const { state } = useBackgammonStore();
+/** לוח שש-בש מעוצב — 24 נקודות, כלים, גרירה ואינדיקטורים */
+function BoardPlane({
+  onMove,
+}: {
+  onMove?: (from: number | 'bar', to: number | 'off') => void;
+}) {
+  const state = useBackgammonStore((s) => s.state);
+  const draggingFrom = useBackgammonStore((s) => s.draggingFrom);
+  const legalMovesForSelected = useBackgammonStore((s) => s.legalMovesForSelected);
   const [ref] = usePlane(() => ({
     type: 'Static',
     position: [0, 0, 0],
     rotation: [-Math.PI / 2, 0, 0],
   }));
 
-  // Board dimensions - balanced proportions
   const BOARD_WIDTH = 14;
   const BOARD_HEIGHT = 18;
-  const FRAME_THICKNESS = 0.25;
-  const POINT_WIDTH = 0.85;
-  const POINT_HEIGHT = 2.6;
-  const CHECKER_RADIUS = 0.38;
-  const CHECKER_HEIGHT = 0.18;
+  const FRAME_THICKNESS = 0.2;
+  const POINT_WIDTH = 0.82;
+  const POINT_HEIGHT = 2.5;
 
-  // Classic premium: dark green felt + cream/ivory points (alternating)
-  const FELT_COLOR = '#0c2818';
-  const POINT_LIGHT = '#e8ddc8';
-  const POINT_DARK = '#b8956e';
+  const FELT_COLOR = '#0a1f14';
+  const POINT_LIGHT = '#eae4d8';
+  const POINT_DARK = '#6b5344';
   const FRAME_NEON = '#00f5d4';
-  const BAR_COLOR = '#1a1a1a';
+  const BAR_COLOR = '#0d0d0d';
   const BAR_EMISSIVE = '#ffd700';
 
-  const getPointPosition = (pointIndex: number) => {
-    let quadrant: number, localIdx: number;
-    if (pointIndex <= 5) {
-      quadrant = 0;
-      localIdx = pointIndex;
-    } else if (pointIndex <= 11) {
-      quadrant = 1;
-      localIdx = pointIndex - 6;
-    } else if (pointIndex <= 17) {
-      quadrant = 2;
-      localIdx = pointIndex - 12;
-    } else {
-      quadrant = 3;
-      localIdx = pointIndex - 18;
-    }
-    const isBottom = quadrant === 0 || quadrant === 1;
-    const isRight = quadrant === 0 || quadrant === 3;
-    const xBase = isRight ? 1.2 : -7.2;
-    const x = xBase + (isRight ? localIdx : (5 - localIdx)) * 1.02;
-    const z = isBottom ? 6.2 : -6.2;
-    return { x, z, isBottom, isRight };
-  };
+  const canDrag = state.turn === 0 && state.dice !== null && typeof onMove === 'function';
 
   const renderPoints = () => {
     const points: JSX.Element[] = [];
@@ -555,10 +598,8 @@ function BoardPlane() {
           rotation={[-Math.PI / 2, 0, rotation]}
           castShadow
         >
-          <coneGeometry args={[POINT_WIDTH / 2, POINT_HEIGHT, 4]} />
-          <meshStandardMaterial
-            {...({ color, roughness: 0.5, metalness: 0.15 } as any)}
-          />
+          <coneGeometry args={[POINT_WIDTH / 2, POINT_HEIGHT, 3]} />
+          <meshStandardMaterial {...spreadMaterialProps({ color, roughness: 0.6, metalness: 0.1 })} />
         </mesh>
       );
     }
@@ -566,36 +607,38 @@ function BoardPlane() {
   };
 
   const renderCheckers = () => {
-    const checkers: JSX.Element[] = [];
-    const COLORS = ['#00f5d4', '#f72585'];
+    const COLORS = [NEON_CYAN, NEON_PINK];
 
-    state.board.forEach((count, pointIndex) => {
-      if (count === 0) return;
+    return state.board.flatMap((count, pointIndex) => {
+      if (count === 0) return [];
       const player = count > 0 ? 0 : 1;
       const numCheckers = Math.abs(count);
-      const { x, z, isBottom } = getPointPosition(pointIndex);
-
-      for (let i = 0; i < numCheckers; i++) {
-        const zOff = isBottom ? -i * CHECKER_HEIGHT * 2.6 : i * CHECKER_HEIGHT * 2.6;
-        const y = 0.06 + i * CHECKER_HEIGHT * 2.2;
-
-        checkers.push(
-          <mesh key={`checker-${pointIndex}-${i}`} position={[x, y, z + zOff * 0.5]} castShadow>
-            <cylinderGeometry args={[CHECKER_RADIUS, CHECKER_RADIUS * 0.98, CHECKER_HEIGHT, 24]} />
-            <meshStandardMaterial
-              {...({
-                color: COLORS[player],
-                emissive: COLORS[player],
-                emissiveIntensity: 0.5,
-                roughness: 0.25,
-                metalness: 0.75,
-              } as any)}
+      return Array.from({ length: numCheckers }, (_, i) => {
+        const pos = getCheckerPosition(pointIndex, i, numCheckers);
+        const isTopChecker = i === numCheckers - 1;
+        if (canDrag && isTopChecker && onMove) {
+          return (
+            <DraggableChecker
+              key={`checker-${pointIndex}-${i}`}
+              pointIndex={pointIndex}
+              checkerIndex={i}
+              totalInPoint={numCheckers}
+              position={pos}
+              color={COLORS[player]}
+              onMove={onMove}
             />
-          </mesh>
+          );
+        }
+        return (
+          <Checker
+            key={`checker-${pointIndex}-${i}`}
+            position={pos}
+            color={COLORS[player]}
+            isNeon
+          />
         );
-      }
+      });
     });
-    return checkers;
   };
 
   const h = BOARD_HEIGHT / 2;
@@ -603,7 +646,7 @@ function BoardPlane() {
 
   return (
     <group>
-      {/* Main board surface - premium dark felt */}
+      {/* Main board surface — dark felt */}
       <mesh
         ref={ref as React.RefObject<Mesh>}
         rotation={[-Math.PI / 2, 0, 0]}
@@ -611,9 +654,7 @@ function BoardPlane() {
         position={[0, 0, 0]}
       >
         <planeGeometry args={[BOARD_WIDTH, BOARD_HEIGHT]} />
-        <meshStandardMaterial
-          {...({ color: FELT_COLOR, roughness: 0.85, metalness: 0.05 } as any)}
-        />
+        <meshStandardMaterial {...spreadMaterialProps({ color: FELT_COLOR, roughness: 0.9, metalness: 0.02 })} />
       </mesh>
 
       {/* Rectangular neon frame */}
@@ -623,52 +664,59 @@ function BoardPlane() {
         [-w - FRAME_THICKNESS / 2, 0, FRAME_THICKNESS, BOARD_HEIGHT + FRAME_THICKNESS * 2],
         [w + FRAME_THICKNESS / 2, 0, FRAME_THICKNESS, BOARD_HEIGHT + FRAME_THICKNESS * 2],
       ].map(([px, pz, fw, fh], i) => (
-        <mesh key={`frame-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[px, 0.015, pz]}>
+        <mesh key={`frame-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[px, 0.012, pz]}>
           <planeGeometry args={[fw, fh]} />
           <meshStandardMaterial
-            {...({
+            {...spreadMaterialProps({
               color: FRAME_NEON,
               emissive: FRAME_NEON,
-              emissiveIntensity: 0.6,
-              roughness: 0.3,
-              metalness: 0.5,
-            } as any)}
+              emissiveIntensity: 0.4,
+              roughness: 0.25,
+              metalness: 0.6,
+            })}
           />
         </mesh>
       ))}
 
       {/* Center bar */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 0]}>
-        <planeGeometry args={[1, BOARD_HEIGHT]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.022, 0]}>
+        <planeGeometry args={[1.1, BOARD_HEIGHT]} />
         <meshStandardMaterial
-          {...({
+          {...spreadMaterialProps({
             color: BAR_COLOR,
             emissive: BAR_EMISSIVE,
-            emissiveIntensity: 0.25,
-            roughness: 0.2,
-            metalness: 0.9,
-          } as any)}
+            emissiveIntensity: 0.2,
+            roughness: 0.3,
+            metalness: 0.85,
+          })}
         />
       </mesh>
 
       {renderPoints()}
+      {legalMovesForSelected.map((target) =>
+        target === 'off' ? null : (
+          <MoveIndicator key={`move-${target}`} position={getPointCenter(target)} isTargeted />
+        )
+      )}
       {renderCheckers()}
 
-      {/* Corner accents */}
+      {/* Corner accents — subtle */}
       {[
-        [-w - 0.15, -h - 0.15],
-        [w + 0.15, -h - 0.15],
-        [-w - 0.15, h + 0.15],
-        [w + 0.15, h + 0.15],
+        [-w - 0.12, -h - 0.12],
+        [w + 0.12, -h - 0.12],
+        [-w - 0.12, h + 0.12],
+        [w + 0.12, h + 0.12],
       ].map(([x, z], i) => (
-        <mesh key={`corner-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[x, 0.03, z]}>
-          <circleGeometry args={[0.35, 20]} />
+        <mesh key={`corner-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[x, 0.02, z]}>
+          <circleGeometry args={[0.28, 24]} />
           <meshStandardMaterial
-            {...({
-              color: i % 2 === 0 ? '#00f5d4' : '#f72585',
-              emissive: i % 2 === 0 ? '#00f5d4' : '#f72585',
-              emissiveIntensity: 0.5,
-            } as any)}
+            {...spreadMaterialProps({
+              color: i % 2 === 0 ? NEON_CYAN : NEON_PINK,
+              emissive: i % 2 === 0 ? NEON_CYAN : NEON_PINK,
+              emissiveIntensity: 0.35,
+              roughness: 0.3,
+              metalness: 0.5,
+            })}
           />
         </mesh>
       ))}

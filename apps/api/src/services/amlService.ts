@@ -4,7 +4,7 @@
  */
 
 import type { Pool } from 'pg';
-import { pool } from '../db/index.js';
+import { pool } from '../db/index';
 
 export interface AMLAlert {
   id: string;

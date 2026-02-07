@@ -5,6 +5,8 @@ import {
   Box,
   BottomNavigation,
   BottomNavigationAction,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { Home, Store, Leaderboard, Person } from '@mui/icons-material';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -15,6 +17,8 @@ import { playSound } from '../shared/audio';
 import { AppFooter } from '../app/AppFooter';
 import { useApiStatusStore } from '../shared/store/apiStatus';
 import { AudioSettingsButton } from '../shared/components/AudioSettings';
+import { LiveSidebar } from '../shared/components/LiveSidebar';
+import { PremiumHeader } from '../shared/components/PremiumHeader';
 
 const onNavClick = () => {
   playSound('click');
@@ -22,6 +26,7 @@ const onNavClick = () => {
 };
 
 const bottomNavPaths = ['/', '/store', '/leaderboard', '/profile'] as const;
+const liveSidebarRoutes = ['/snooker', '/backgammon', '/poker'] as const;
 
 // Navigation labels
 const NAV_LABELS = {
@@ -32,6 +37,9 @@ const NAV_LABELS = {
 };
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const theme = useTheme();
+  const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMedium = useMediaQuery(theme.breakpoints.down('md'));
   const { t } = useTranslation('common');
   const apiOnline = useApiStatusStore((s) => s.online);
   const balance = useWalletStore((s) => s.balance);
@@ -42,6 +50,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
     location.pathname as (typeof bottomNavPaths)[number]
   );
   const activeIndex = currentIndex >= 0 ? currentIndex : 0;
+  const showLiveSidebar =
+    liveSidebarRoutes.includes(location.pathname as (typeof liveSidebarRoutes)[number]) && !isSmall;
 
   return (
     <Box sx={{ pb: 7 }}>
@@ -88,53 +98,24 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <AppBar
         position="sticky"
         sx={{
-          bgcolor: 'rgba(22, 22, 26, 0.8)',
-          backdropFilter: 'blur(10px)',
+          bgcolor: 'rgba(0,0,0,0.85)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid rgba(255,255,255,0.1)',
         }}
         role="banner"
         aria-label="App header"
       >
-        <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <Typography
-            variant="h6"
-            component="span"
-            sx={{ color: '#00ffff', fontWeight: 'bold' }}
-          >
-            NEON OASIS
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <AudioSettingsButton />
-            <Box
-              data-wallet-chip
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.5,
-              bgcolor: '#333',
-              px: 2,
-              py: 0.5,
-              borderRadius: 5,
-              border: '1px solid #ff00ff',
-              boxShadow: '0 0 12px rgba(255,0,255,0.3)',
-              transition: 'transform 0.1s ease-out',
-            }}
-            aria-label={`${Number(balance).toLocaleString()} ${t('balance')}, ${Number(oasisBalance).toLocaleString()} Oasis, ELO ${eloRating}`}
-          >
-            <Typography component="span" sx={{ color: '#ff00ff', fontSize: '0.875rem' }}>
-              💎 {Number(balance).toLocaleString()}
-            </Typography>
-            <Typography component="span" sx={{ color: '#00ffff', fontSize: '0.75rem' }}>
-              ◉ {Number(oasisBalance).toLocaleString()}
-            </Typography>
-            <Typography component="span" sx={{ color: '#b0b0b0', fontSize: '0.75rem' }}>
-              ELO {eloRating}
-            </Typography>
-            </Box>
-          </Box>
+        <Toolbar sx={{ minHeight: { xs: 48, sm: 56 }, px: 0 }}>
+          <PremiumHeader rightSlot={<AudioSettingsButton />} />
         </Toolbar>
       </AppBar>
 
-      <main id="main-content" tabIndex={-1}>{children}</main>
+      <Box sx={{ display: 'flex', flex: 1, minHeight: 0 }}>
+        {showLiveSidebar && <LiveSidebar />}
+        <Box component="main" id="main-content" tabIndex={-1} sx={{ flex: 1, minWidth: 0 }}>
+          {children}
+        </Box>
+      </Box>
 
       <AppFooter />
 

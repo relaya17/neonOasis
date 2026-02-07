@@ -69,6 +69,21 @@ export function IntroVideoGate({ children }: IntroVideoGateProps) {
         flexDirection: 'column',
       }}
     >
+      <Typography
+        variant="h6"
+        sx={{
+          position: 'absolute',
+          top: 24,
+          left: 0,
+          right: 0,
+          textAlign: 'center',
+          color: '#00f2ea',
+          zIndex: 2,
+          textShadow: '0 0 12px rgba(0,242,234,0.6)',
+        }}
+      >
+        וידאו פתיחה
+      </Typography>
       <video
         ref={introVideoRef}
         src={INTRO_VIDEO_URL}
@@ -83,6 +98,36 @@ export function IntroVideoGate({ children }: IntroVideoGateProps) {
           opacity: videoLoaded && !videoError ? 1 : 0,
         }}
       />
+      <Box
+        sx={{
+          position: 'absolute',
+          bottom: 24,
+          left: 0,
+          right: 0,
+          display: 'flex',
+          justifyContent: 'center',
+          zIndex: 2,
+        }}
+      >
+        <Typography
+          component="button"
+          type="button"
+          onClick={handleEnter}
+          sx={{
+            color: '#888',
+            bgcolor: 'transparent',
+            border: '1px solid #666',
+            borderRadius: 2,
+            px: 2,
+            py: 1,
+            cursor: 'pointer',
+            fontSize: '0.9rem',
+            '&:hover': { color: '#00f2ea', borderColor: '#00f2ea' },
+          }}
+        >
+          דלג על וידאו
+        </Typography>
+      </Box>
       {(videoError || (!videoLoaded && !videoError)) && (
         <Box
           sx={{
@@ -97,15 +142,36 @@ export function IntroVideoGate({ children }: IntroVideoGateProps) {
             justifyContent: 'center',
             gap: 2,
             p: 2,
+            bgcolor: 'rgba(0,0,0,0.85)',
           }}
         >
           {videoError && (
-            <Typography sx={{ color: '#888', textAlign: 'center' }}>
-              הווידאו לא נטען. מעבר אוטומטי...
-            </Typography>
+            <>
+              <Typography sx={{ color: '#888', textAlign: 'center' }}>
+                וידאו הפתיחה לא נטען. ניתן להמשיך לדף הבית.
+              </Typography>
+              <Typography
+                component="button"
+                type="button"
+                onClick={handleEnter}
+                sx={{
+                  color: '#00f2ea',
+                  border: '1px solid #00f2ea',
+                  borderRadius: 2,
+                  px: 3,
+                  py: 1.5,
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  bgcolor: 'transparent',
+                  '&:hover': { bgcolor: 'rgba(0,242,234,0.1)' },
+                }}
+              >
+                המשך
+              </Typography>
+            </>
           )}
           {!videoLoaded && !videoError && (
-            <Typography sx={{ color: '#666' }}>טוען וידאו...</Typography>
+            <Typography sx={{ color: '#666' }}>טוען וידאו פתיחה...</Typography>
           )}
         </Box>
       )}

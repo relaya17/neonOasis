@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { playVoice } from '../audio/premiumSoundService';
+import { getApiBase } from '../../config/apiBase';
 
 type DealerProfile = {
   totalRolls: number;
@@ -10,7 +11,7 @@ type DealerProfile = {
 };
 
 const STORAGE_KEY = 'aiDealerProfile';
-const API_URL = import.meta.env.VITE_API_URL ?? '';
+const getApi = () => getApiBase() || '';
 const MESSAGE_COOLDOWN_MS = 15000;
 const MESSAGE_TTL_MS = 5000;
 const FAST_MOVE_MS = 4500;
@@ -80,9 +81,10 @@ export function useAIDealer(options?: { userId?: string; gameId?: string }) {
 
   const triggerRoll = useCallback(async (dice: [number, number], moveMs?: number, userId?: string, gameId?: string) => {
     const now = Date.now();
-    if (API_URL && userId) {
+    const api = getApi();
+    if (api && userId) {
       try {
-        const res = await fetch(`${API_URL}/api/ai/dealer/event`, {
+        const res = await fetch(`${api}/api/ai/dealer/event`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -127,9 +129,10 @@ export function useAIDealer(options?: { userId?: string; gameId?: string }) {
 
   const triggerMove = useCallback(async (moveMs: number, userId?: string, gameId?: string, actionPayload?: unknown) => {
     const now = Date.now();
-    if (API_URL && userId) {
+    const api = getApi();
+    if (api && userId) {
       try {
-        const res = await fetch(`${API_URL}/api/ai/dealer/event`, {
+        const res = await fetch(`${api}/api/ai/dealer/event`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

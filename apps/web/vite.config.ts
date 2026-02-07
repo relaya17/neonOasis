@@ -1,26 +1,25 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-// import { VitePWA } from 'vite-plugin-pwa';
+import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 
 export default defineConfig({
   plugins: [
     react(),
-    // PWA disabled for now due to workbox-build ESM issue
-    // VitePWA({
-    //   registerType: 'autoUpdate',
-    //   manifest: false,
-    //   workbox: {
-    //     globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-    //     runtimeCaching: [
-    //       {
-    //         urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-    //         handler: 'CacheFirst',
-    //         options: { cacheName: 'google-fonts-cache', expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 } },
-    //       },
-    //     ],
-    //   },
-    // }),
+    VitePWA({
+      registerType: 'autoUpdate',
+      manifest: false,
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: { cacheName: 'google-fonts-cache', expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 } },
+          },
+        ],
+      },
+    }),
   ],
   resolve: {
     alias: {
@@ -40,14 +39,15 @@ export default defineConfig({
         assetFileNames: 'assets/[name]-[hash][extname]',
       },
     },
-    chunkSizeWarningLimit: 1600,
+    chunkSizeWarningLimit: 800,
+    sourcemap: true,
   },
   optimizeDeps: {
     include: ['@neon-oasis/shared'],
   },
   server: {
     port: 5273,
-    strictPort: false,
+    strictPort: true,
     open: true,
     proxy: {
       '/api': { target: 'http://localhost:4000', changeOrigin: true },

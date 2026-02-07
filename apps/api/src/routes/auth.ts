@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
-import { guest, login } from '../controllers/authController.js';
-import { rateLimiters } from '../middleware/rateLimit.js';
+import { guest, login } from '../controllers/authController';
+import { rateLimiters } from '../middleware/rateLimit';
 
 export async function authRoutes(fastify: FastifyInstance) {
   // Guest login: moderate rate limit (prevent bot spam)

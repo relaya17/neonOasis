@@ -14,6 +14,7 @@ export type SoundEvent =
   | 'lose'
   | 'notification'
   | 'coin'
+  | 'gift_sent'
   | 'card_flip'
   | 'chip_stack';
 
@@ -47,18 +48,48 @@ class PremiumSoundService {
   private sounds: Map<SoundEvent, Howl> = new Map();
   private voices: Map<VoiceEvent, Howl> = new Map();
   private preloaded = false;
+  private audioContextResumed = false;
 
   /**
-   * Preload all sound assets
+   * Resume AudioContext on first user interaction (required by browser autoplay policy).
+   * Call this on first click/tap so that sounds can play.
    */
-  async preloadSounds(): Promise<void> {
-    if (this.preloaded) return;
+  private async resumeAudioContextIfNeeded(): Promise<void> {
+    if (this.audioContextResumed || typeof window === 'undefined') return;
+    const ctx = typeof (window as unknown as { Howler?: { ctx?: AudioContext } }).Howler?.ctx !== 'undefined'
+      ? (window as unknown as { Howler: { ctx: AudioContext } }).Howler.ctx
+      : null;
+    if (ctx?.state === 'suspended') {
+      await ctx.resume();
+      this.audioContextResumed = true;
+    }
+  }
 
+  /**
+   * Base URL for sound files: from VITE_SOUNDS_BASE_URL (network/CDN) or same origin.
+   * Use VITE_SOUNDS_BASE_URL to load from an allowed CORS origin (e.g. your CDN).
+   */
+  private getSoundBase(): string {
+    const fromEnv =
+      typeof import.meta !== 'undefined' &&
+      (import.meta.env as { VITE_SOUNDS_BASE_URL?: string }).VITE_SOUNDS_BASE_URL;
+    if (fromEnv && typeof fromEnv === 'string') {
+      return fromEnv.endsWith('/') ? fromEnv.slice(0, -1) : fromEnv;
+    }
     const base =
       (typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL) || '';
     const baseNorm = base.endsWith('/') ? base.slice(0, -1) : base;
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    const soundBase = origin ? `${origin}${baseNorm || ''}` : baseNorm || '';
+    return origin ? `${origin}${baseNorm || ''}` : baseNorm || '';
+  }
+
+  /**
+   * Preload all sound assets (from same origin or VITE_SOUNDS_BASE_URL).
+   */
+  async preloadSounds(): Promise<void> {
+    if (this.preloaded) return;
+
+    const soundBase = this.getSoundBase();
 
     try {
       const soundEvents: SoundEvent[] = [
@@ -70,20 +101,23 @@ class PremiumSoundService {
         'lose',
         'notification',
         'coin',
+        'gift_sent',
         'card_flip',
         'chip_stack',
       ];
 
       for (const event of soundEvents) {
-        const soundPath = `${soundBase}/sounds/${event}.mp3`;
+        const file = event === 'gift_sent' ? 'coin' : event;
+        const soundPath = `${soundBase}/sounds/${file}.mp3`;
         this.sounds.set(
           event,
           new Howl({
             src: [soundPath],
             volume: this.state.volume,
-            onloaderror: () => {
+            html5: false,
+            onloaderror: (_id, err) => {
               if (typeof console !== 'undefined' && console.debug) {
-                console.debug(`Sound file not found: ${soundPath}, using fallback`);
+                console.debug(`Sound file not found: ${soundPath}`, err);
               }
             },
           })
@@ -124,19 +158,23 @@ class PremiumSoundService {
   }
 
   /**
-   * Play a sound effect
+   * Play a sound effect. Resumes AudioContext on first play so browser allows playback.
    */
   playSound(event: SoundEvent): void {
     if (!this.state.enabled || this.state.volume <= 0) return;
 
     const sound = this.sounds.get(event);
-    if (sound) {
-      sound.volume(this.state.volume);
-      sound.play();
-    } else {
-      // Fallback: browser beep
-      this.playBeep(event);
-    }
+    const doPlay = () => {
+      if (sound) {
+        sound.volume(this.state.volume);
+        sound.play();
+      } else {
+        this.playBeep(event);
+      }
+      // Howler may create ctx on first play(); resume so next play works
+      setTimeout(() => this.resumeAudioContextIfNeeded(), 0);
+    };
+    this.resumeAudioContextIfNeeded().then(doPlay);
   }
 
   /**
@@ -179,6 +217,7 @@ class PremiumSoundService {
       lose: 300,
       notification: 900,
       coin: 1500,
+      gift_sent: 1500,
       card_flip: 700,
       chip_stack: 500,
     };

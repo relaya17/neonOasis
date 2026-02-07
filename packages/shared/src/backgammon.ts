@@ -1,6 +1,6 @@
 /** Backgammon logic — legal moves, hits, bear off, mars. Single source of truth. */
 
-import type { BackgammonState, BackgammonMove } from './game';
+import type { BackgammonState, BackgammonMove, BackgammonMoveWithDie } from './game';
 
 export const BACKGAMMON_POINTS = 24;
 export const CHECKERS_PER_PLAYER = 15;
@@ -65,38 +65,63 @@ function isBlocked(state: BackgammonState, point: number, player: 0 | 1): boolea
   return v > 1;
 }
 
+/** Can land on point? (empty, our checkers, or single opponent blot) */
+export function isPointAvailable(state: BackgammonState, point: number, player: 0 | 1): boolean {
+  return !isBlocked(state, point, player);
+}
+
+/** Is this the furthest point with our checker (for bear-off with high die)? Player 0: highest index; Player 1: lowest. */
+export function isFurthestPoint(state: BackgammonState, point: number, player: 0 | 1): boolean {
+  const board = state.board;
+  if (player === 0) {
+    for (let i = point + 1; i < BACKGAMMON_POINTS; i++) if (board[i] > 0) return false;
+    return board[point] > 0;
+  } else {
+    for (let i = point - 1; i >= 0; i--) if (board[i] < 0) return false;
+    return board[point] < 0;
+  }
+}
+
 /** All legal moves for current turn (dice already set). Uses dice as two moves or one double move. */
 export function getLegalMoves(state: BackgammonState): BackgammonMove[] {
-  const moves: BackgammonMove[] = [];
+  return getLegalMovesWithDie(state).map(({ from, to }) => ({ from, to }));
+}
+
+/**
+ * כל המהלכים החוקיים עם מספר הקוביה (die) — ל-UI: הדגשת יעדים, צריכת קוביה.
+ * לוגיקה זהה ל-getLegalMoves: Bar, חסימות, bearing off.
+ */
+export function getLegalMovesWithDie(state: BackgammonState): BackgammonMoveWithDie[] {
+  const moves: BackgammonMoveWithDie[] = [];
   if (state.dice === null) return moves;
   const player = state.turn;
   const [a, b] = state.dice;
   const diceValues = a === b ? [a, a, a, a] : [a, b];
 
-  function addMove(from: number | 'bar', to: number | 'off'): void {
-    if (isMoveLegal(state, player, from, to)) moves.push({ from, to });
+  function addMove(from: number | 'bar', to: number | 'off', die: number): void {
+    if (isMoveLegal(state, player, from, to)) moves.push({ from, to, die });
   }
 
-  // From bar: must enter. Player 0 enters at point (23-d) 0-indexed, player 1 at (d-1).
+  // 1. כלים ב-Bar — חובה להוציא קודם. שחקן 0 נכנס ב-(23-d), שחקן 1 ב-(d-1).
   if (state.bar[player] > 0) {
     const uniqDice = a === b ? [a] : [a, b];
     for (const d of uniqDice) {
       const entry = player === 0 ? 23 - d : d - 1;
-      if (entry >= 0 && entry < 24 && !isBlocked(state, entry, player)) addMove('bar', entry);
+      if (entry >= 0 && entry < 24 && !isBlocked(state, entry, player)) addMove('bar', entry, d);
     }
-    if (moves.length > 0) return moves; // must play from bar first
+    if (moves.length > 0) return moves;
   }
 
-  // From points
+  // 2. מהלכים רגילים + bearing off
   for (let from = 0; from < BACKGAMMON_POINTS; from++) {
     const count = player === 0 ? state.board[from] : -state.board[from];
     if (count <= 0) continue;
     for (const d of diceValues) {
       let toPoint = from;
       for (let i = 0; i < d; i++) toPoint = step(player, toPoint);
-      if (player === 0 && toPoint >= 24) addMove(from, 'off');
-      else if (player === 1 && toPoint < 0) addMove(from, 'off');
-      else if (toPoint >= 0 && toPoint < 24) addMove(from, toPoint);
+      if (player === 0 && toPoint >= 24) addMove(from, 'off', d);
+      else if (player === 1 && toPoint < 0) addMove(from, 'off', d);
+      else if (toPoint >= 0 && toPoint < 24) addMove(from, toPoint, d);
     }
   }
   return moves;

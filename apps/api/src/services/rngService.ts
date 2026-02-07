@@ -59,25 +59,22 @@ export async function commitSeed(
   const commitment = makeCommitment(seed);
   
   if (!pool) {
-    // In-memory fallback for development
-    inMemoryCommits.set(gameId, {
-      gameId,
-      seed,
-      commitment,
-      nonce,
-      clientSeed: clientSeed ?? null,
-    });
-    console.log('ℹ️  RNG commit (in-memory):', gameId);
+    inMemoryCommits.set(gameId, { gameId, seed, commitment, nonce, clientSeed: clientSeed ?? null });
     return { commitment, nonce };
   }
-  
-  await pool.query(
-    `INSERT INTO rng_commits (game_id, seed, commitment, nonce, client_seed)
-     VALUES ($1, $2, $3, $4, $5)
-     ON CONFLICT (game_id) DO UPDATE SET seed = $2, commitment = $3, nonce = $4, client_seed = $5`,
-    [gameId, seed, commitment, nonce, clientSeed ?? null]
-  );
-  return { commitment, nonce };
+
+  try {
+    await pool.query(
+      `INSERT INTO rng_commits (game_id, seed, commitment, nonce, client_seed)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (game_id) DO UPDATE SET seed = $2, commitment = $3, nonce = $4, client_seed = $5`,
+      [gameId, seed, commitment, nonce, clientSeed ?? null]
+    );
+    return { commitment, nonce };
+  } catch {
+    inMemoryCommits.set(gameId, { gameId, seed, commitment, nonce, clientSeed: clientSeed ?? null });
+    return { commitment, nonce };
+  }
 }
 
 /**
@@ -102,19 +99,37 @@ export async function getCommittedRoll(
     return { commitment: commit.commitment, nonce: commit.nonce, hash, dice, timestamp: Date.now() };
   }
   
-  const row = await pool.query<{
-    seed: string;
-    nonce: string;
-    client_seed: string | null;
-    commitment: string;
-  }>(`SELECT seed, nonce, client_seed, commitment FROM rng_commits WHERE game_id = $1`, [gameId]);
-  if (row.rowCount === 0) return { error: 'No commit for this game' };
-  const { seed, nonce, client_seed, commitment } = row.rows[0];
-  const clientSeed = clientSeedOverride ?? client_seed ?? undefined;
-  const combined = clientSeed ? `${seed}:${clientSeed}:${nonce}` : `${seed}:${nonce}`;
-  const hash = createHash('sha256').update(combined).digest('hex');
-  const dice = hashToDice(hash);
-  return { commitment, nonce, hash, dice, timestamp: Date.now() };
+  try {
+    const row = await pool.query<{
+      seed: string;
+      nonce: string;
+      client_seed: string | null;
+      commitment: string;
+    }>(`SELECT seed, nonce, client_seed, commitment FROM rng_commits WHERE game_id = $1`, [gameId]);
+    if (row.rowCount === 0) {
+      const commit = inMemoryCommits.get(gameId);
+      if (!commit) return { error: 'No commit for this game' };
+      const clientSeed = clientSeedOverride ?? commit.clientSeed ?? undefined;
+      const combined = clientSeed ? `${commit.seed}:${clientSeed}:${commit.nonce}` : `${commit.seed}:${commit.nonce}`;
+      const hash = createHash('sha256').update(combined).digest('hex');
+      const dice = hashToDice(hash);
+      return { commitment: commit.commitment, nonce: commit.nonce, hash, dice, timestamp: Date.now() };
+    }
+    const { seed, nonce, client_seed, commitment } = row.rows[0];
+    const clientSeed = clientSeedOverride ?? client_seed ?? undefined;
+    const combined = clientSeed ? `${seed}:${clientSeed}:${nonce}` : `${seed}:${nonce}`;
+    const hash = createHash('sha256').update(combined).digest('hex');
+    const dice = hashToDice(hash);
+    return { commitment, nonce, hash, dice, timestamp: Date.now() };
+  } catch {
+    const commit = inMemoryCommits.get(gameId);
+    if (!commit) return { error: 'No commit for this game' };
+    const clientSeed = clientSeedOverride ?? commit.clientSeed ?? undefined;
+    const combined = clientSeed ? `${commit.seed}:${clientSeed}:${commit.nonce}` : `${commit.seed}:${commit.nonce}`;
+    const hash = createHash('sha256').update(combined).digest('hex');
+    const dice = hashToDice(hash);
+    return { commitment: commit.commitment, nonce: commit.nonce, hash, dice, timestamp: Date.now() };
+  }
 }
 
 /**
@@ -134,14 +149,30 @@ export async function revealSeed(gameId: string): Promise<
     return { seed: commit.seed, nonce: commit.nonce, hash, dice, timestamp: Date.now() };
   }
   
-  const row = await pool.query<{ seed: string; nonce: string; client_seed: string | null }>(
-    `SELECT seed, nonce, client_seed FROM rng_commits WHERE game_id = $1`,
-    [gameId]
-  );
-  if (row.rowCount === 0) return { error: 'No commit for this game' };
-  const { seed, nonce, client_seed } = row.rows[0];
-  const combined = client_seed ? `${seed}:${client_seed}:${nonce}` : `${seed}:${nonce}`;
-  const hash = createHash('sha256').update(combined).digest('hex');
-  const dice = hashToDice(hash);
-  return { seed, nonce, hash, dice, timestamp: Date.now() };
+  try {
+    const row = await pool.query<{ seed: string; nonce: string; client_seed: string | null }>(
+      `SELECT seed, nonce, client_seed FROM rng_commits WHERE game_id = $1`,
+      [gameId]
+    );
+    if (row.rowCount === 0) {
+      const commit = inMemoryCommits.get(gameId);
+      if (!commit) return { error: 'No commit for this game' };
+      const combined = commit.clientSeed ? `${commit.seed}:${commit.clientSeed}:${commit.nonce}` : `${commit.seed}:${commit.nonce}`;
+      const hash = createHash('sha256').update(combined).digest('hex');
+      const dice = hashToDice(hash);
+      return { seed: commit.seed, nonce: commit.nonce, hash, dice, timestamp: Date.now() };
+    }
+    const { seed, nonce, client_seed } = row.rows[0];
+    const combined = client_seed ? `${seed}:${client_seed}:${nonce}` : `${seed}:${nonce}`;
+    const hash = createHash('sha256').update(combined).digest('hex');
+    const dice = hashToDice(hash);
+    return { seed, nonce, hash, dice, timestamp: Date.now() };
+  } catch {
+    const commit = inMemoryCommits.get(gameId);
+    if (!commit) return { error: 'No commit for this game' };
+    const combined = commit.clientSeed ? `${commit.seed}:${commit.clientSeed}:${commit.nonce}` : `${commit.seed}:${commit.nonce}`;
+    const hash = createHash('sha256').update(combined).digest('hex');
+    const dice = hashToDice(hash);
+    return { seed: commit.seed, nonce: commit.nonce, hash, dice, timestamp: Date.now() };
+  }
 }

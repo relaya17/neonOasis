@@ -3,36 +3,43 @@
 
 declare module 'three' {
   // Re-export common types that are used in the codebase
-  export type Mesh = any;
-  export type Vector3 = any;
-  export type Color = any;
-  export type Scene = any;
-  export type Camera = any;
-  export type WebGLRenderer = any;
-  export type Geometry = any;
-  export type Material = any;
-  export type Object3D = any;
-  export type Group = any;
-  export type BufferGeometry = any;
-  export type MeshStandardMaterial = any;
-  export type MeshBasicMaterial = any;
-  export type AmbientLight = any;
-  export type DirectionalLight = any;
-  export type PointLight = any;
-  export type SpotLight = any;
-  export type PerspectiveCamera = any;
-  export type OrthographicCamera = any;
-  export type Texture = any;
-  export type CubeTexture = any;
-  export type AnimationMixer = any;
-  export type Clock = any;
-  export type Raycaster = any;
-  export type EventDispatcher = any;
-  
-  // Export namespace for global THREE usage
+  export type Mesh = unknown;
+  export type Vector3 = unknown;
+  export type Color = unknown;
+  export type Scene = unknown;
+  export type Camera = unknown;
+  export type WebGLRenderer = unknown;
+  export type Geometry = unknown;
+  export type Material = unknown;
+  export type Object3D = unknown;
+  export type Group = unknown;
+  export type BufferGeometry = unknown;
+  export type MeshStandardMaterial = unknown;
+  export type MeshBasicMaterial = unknown;
+  export type AmbientLight = unknown;
+  export type DirectionalLight = unknown;
+  export type PointLight = unknown;
+  export type SpotLight = unknown;
+  export type PerspectiveCamera = unknown;
+  export type OrthographicCamera = unknown;
+  export type Texture = unknown;
+  export type CubeTexture = unknown;
+  export type AnimationMixer = unknown;
+  export type Clock = unknown;
+  export type Raycaster = unknown;
+  export type EventDispatcher = unknown;
+
+  export class Euler {
+    constructor(x?: number, y?: number, z?: number);
+  }
+  export class Quaternion {
+    constructor(x?: number, y?: number, z?: number, w?: number);
+    setFromEuler(e: Euler): this;
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+    readonly w: number;
+  }
+
   export as namespace THREE;
-  
-  // Export default for ES module imports
-  const THREE: any;
-  export default THREE;
 }

@@ -10,7 +10,7 @@ import {
   registerForTournament,
   startTournament,
   recordMatchWinner,
-} from '../controllers/tournamentController.js';
+} from '../controllers/tournamentController';
 
 export async function tournamentsRoutes(fastify: FastifyInstance) {
   // Get all open tournaments

@@ -20,8 +20,9 @@ import { useApiStatusStore } from '../../shared/store/apiStatus';
 import { ProvablyFairDialog } from '../game/ProvablyFairDialog';
 import { AIDealerOverlay } from '../game/AIDealerOverlay';
 import { useWalletStore } from '../store';
+import { getApiBase } from '../../config/apiBase';
 
-const API_URL = import.meta.env.VITE_API_URL ?? '';
+const getApi = () => getApiBase() || '';
 
 /** Optimized Board with Performance Enhancements */
 export function OptimizedBackgammonBoard3D() {
@@ -49,7 +50,7 @@ export function OptimizedBackgammonBoard3D() {
     const seed = `client-${Math.random().toString(36).slice(2, 10)}-${Date.now().toString(36)}`;
     setClientSeed(seed);
     const controller = new AbortController();
-    fetch(`${API_URL}/api/games/rng/commit`, {
+    fetch(`${getApi()}/api/games/rng/commit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ gameId, clientSeed: seed }),
@@ -85,7 +86,7 @@ export function OptimizedBackgammonBoard3D() {
     setRolling(true);
 
     const controller = new AbortController();
-    fetch(`${API_URL}/api/games/rng/roll?gameId=${encodeURIComponent(gameId)}&clientSeed=${encodeURIComponent(clientSeed)}`, {
+    fetch(`${getApi()}/api/games/rng/roll?gameId=${encodeURIComponent(gameId)}&clientSeed=${encodeURIComponent(clientSeed)}`, {
       signal: controller.signal,
     })
       .then(async (res) => (res.ok ? res.json() : Promise.reject(new Error('roll failed'))))
@@ -111,7 +112,7 @@ export function OptimizedBackgammonBoard3D() {
 
   const handleReveal = () => {
     const controller = new AbortController();
-    fetch(`${API_URL}/api/games/rng/reveal?gameId=${encodeURIComponent(gameId)}`, {
+    fetch(`${getApi()}/api/games/rng/reveal?gameId=${encodeURIComponent(gameId)}`, {
       signal: controller.signal,
     })
       .then(async (res) => (res.ok ? res.json() : Promise.reject(new Error('reveal failed'))))

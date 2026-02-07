@@ -6,8 +6,7 @@ import { useSessionStore } from './authStore';
 import { useWalletStore } from '../store';
 import { useApiStatusStore } from '../../shared/store/apiStatus';
 import { claimReferralIfPending } from './referralRef';
-
-const API_URL = import.meta.env.VITE_API_URL ?? '';
+import { getApiBase } from '../../config/apiBase';
 
 export function LoginView() {
   const { t } = useTranslation('common');
@@ -20,7 +19,7 @@ export function LoginView() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
 
-  const base = API_URL || '';
+  const base = getApiBase() || '';
 
   const handleGuest = async () => {
     setStatus('loading');

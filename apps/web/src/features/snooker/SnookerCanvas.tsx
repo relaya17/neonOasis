@@ -40,15 +40,21 @@ const BALL_IMAGE_TYPES = ['white', 'red', 'yellow', 'green', 'brown', 'blue', 'p
 const getBallImagePath = (type: string) => `/images/snooker_ball_${type}.png`;
 const CUE_LENGTH = 280;
 const CUE_OFFSET = 40;
-const FRICTION = 0.98;
-const POWER_FACTOR = 0.22;
-const MIN_VEL = 0.08;
+/** חיכוך ליחידת צעד; עם SUB_STEPS=5 מתקבל חיכוך אפקטיבי ~0.98 לפריים */
+const FRICTION = 0.996;
+const WALL_BOUNCE = 0.82;
+const POWER_FACTOR = 0.32;
+const MIN_VEL = 0.05;
+const COLLISION_RADIUS = BALL_R * 2.08;
 
 export interface Ball {
   x: number;
   y: number;
   type: 'white' | 'red' | ColorName;
   id?: string;
+  /** מהירות (כדורים שאינם לבן) */
+  vx?: number;
+  vy?: number;
 }
 
 interface Shockwave {
@@ -81,6 +87,10 @@ interface SnookerCanvasProps {
   activeCue?: CueDesign;
   /** רמה 1 = snooker_table2, רמה 2+ = snooker_table */
   level?: number;
+  /** גיר פעיל — זוהר כחול וקוביית גיר על קצה המקל */
+  chalkActive?: boolean;
+  /** דיווח כשגוררים (למניעת שימוש בגיר באמצע כיוון) */
+  onDraggingChange?: (isDragging: boolean) => void;
 }
 
 function getInitialBalls(redsCount: number, colorsPotted: Record<ColorName, boolean>, w: number, h: number): Ball[] {
@@ -138,6 +148,8 @@ export function SnookerCanvas({
   resetKey = 0,
   activeCue = CUE_DESIGNS[DEFAULT_CUE_ID],
   level = 1,
+  chalkActive = false,
+  onDraggingChange,
 }: SnookerCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [power, setPower] = useState(0);
@@ -153,6 +165,23 @@ export function SnookerCanvas({
   const lastPottedForChatRef = useRef<string | null>(null);
   const tableImageRef = useRef<HTMLImageElement | null>(null);
   const ballImagesRef = useRef<Record<string, HTMLImageElement | null>>({});
+  const cueImageRef = useRef<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    if (!activeCue?.imagePath) {
+      cueImageRef.current = null;
+      return;
+    }
+    const img = new Image();
+    img.onload = () => { cueImageRef.current = img; };
+    img.onerror = () => { cueImageRef.current = null; };
+    img.src = activeCue.imagePath;
+    return () => { cueImageRef.current = null; };
+  }, [activeCue?.id, activeCue?.imagePath]);
+
+  useEffect(() => {
+    onDraggingChange?.(isDragging);
+  }, [isDragging, onDraggingChange]);
 
   useEffect(() => {
     BALL_IMAGE_TYPES.forEach((type) => {
@@ -189,12 +218,8 @@ export function SnookerCanvas({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const pockets = pocketsRef.current;
-    const balls = ballsRef.current;
-    const white = balls.find((b) => b.type === 'white');
-    if (!white) return;
-
     const drawTable = () => {
+      const pockets = pocketsRef.current;
       const img = tableImageRef.current;
       if (img && img.complete && img.naturalWidth > 0) {
         ctx.drawImage(img, 0, 0, width, height);
@@ -269,7 +294,7 @@ export function SnookerCanvas({
       ctx.restore();
     };
 
-    const drawPredictionLine = (ax: number, ay: number) => {
+    const drawPredictionLine = (w: Ball, ax: number, _ay: number) => {
       const dx = Math.cos(ax);
       const dy = Math.sin(ax);
       const len = 180;
@@ -277,8 +302,8 @@ export function SnookerCanvas({
       ctx.strokeStyle = NEON_CYAN;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(white.x, white.y);
-      ctx.lineTo(white.x - dx * len, white.y - dy * len);
+      ctx.moveTo(w.x, w.y);
+      ctx.lineTo(w.x + dx * len, w.y + dy * len);
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.shadowBlur = 8;
@@ -287,34 +312,52 @@ export function SnookerCanvas({
       ctx.shadowBlur = 0;
     };
 
-    const drawCustomCue = (ax: number, _ay: number, powerNorm: number, cueStyle: CueDesign) => {
+    const drawCustomCue = (w: Ball, ax: number, _ay: number, powerNorm: number, cueStyle: CueDesign) => {
       ctx.save();
-      ctx.translate(white.x, white.y);
-      ctx.rotate(ax);
+      ctx.translate(w.x, w.y);
+      ctx.rotate(ax + Math.PI);
       const startX = CUE_OFFSET + (1 - powerNorm) * 90;
       const tipX = startX + 18;
       const shaftEnd = startX + CUE_LENGTH;
+      const cueImg = cueImageRef.current;
+      const primaryColor = cueStyle.primaryColor ?? '#c4a574';
+
       ctx.shadowBlur = 16;
       ctx.shadowColor = cueStyle.glowColor;
       ctx.shadowOffsetY = 1;
-      const shaftGrad = ctx.createLinearGradient(startX, 0, shaftEnd, 0);
-      shaftGrad.addColorStop(0, cueStyle.primaryColor);
-      shaftGrad.addColorStop(0.15, cueStyle.primaryColor);
-      shaftGrad.addColorStop(0.5, cueStyle.primaryColor);
-      shaftGrad.addColorStop(0.85, '#2a1810');
-      shaftGrad.addColorStop(1, '#1a0f08');
-      ctx.fillStyle = shaftGrad;
-      ctx.beginPath();
-      const w1 = 4;
+
+      if (cueImg && cueImg.complete && cueImg.naturalWidth > 0) {
+        const cueW = 12;
+        const cueLen = shaftEnd - startX;
+        ctx.drawImage(cueImg, startX, -cueW / 2, cueLen, cueW);
+      } else {
+        const shaftGrad = ctx.createLinearGradient(startX, 0, shaftEnd, 0);
+        shaftGrad.addColorStop(0, primaryColor);
+        shaftGrad.addColorStop(0.15, primaryColor);
+        shaftGrad.addColorStop(0.5, primaryColor);
+        shaftGrad.addColorStop(0.85, '#2a1810');
+        shaftGrad.addColorStop(1, '#1a0f08');
+        ctx.fillStyle = shaftGrad;
+        ctx.beginPath();
+        const w1 = 4;
+        const w2 = 5.5;
+        ctx.moveTo(startX, -w1);
+        ctx.lineTo(tipX, -w2);
+        ctx.lineTo(shaftEnd, -w2);
+        ctx.lineTo(shaftEnd, w2);
+        ctx.lineTo(tipX, w2);
+        ctx.lineTo(startX, w1);
+        ctx.closePath();
+        ctx.fill();
+      }
+
       const w2 = 5.5;
-      ctx.moveTo(startX, -w1);
-      ctx.lineTo(tipX, -w2);
-      ctx.lineTo(shaftEnd, -w2);
-      ctx.lineTo(shaftEnd, w2);
-      ctx.lineTo(tipX, w2);
-      ctx.lineTo(startX, w1);
-      ctx.closePath();
-      ctx.fill();
+      if (chalkActive) {
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = 'rgba(92, 158, 173, 0.9)';
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+      }
       ctx.fillStyle = '#f5f0e6';
       ctx.beginPath();
       ctx.ellipse(tipX, 0, 10, w2 + 0.5, 0, 0, Math.PI * 2);
@@ -322,6 +365,14 @@ export function SnookerCanvas({
       ctx.strokeStyle = '#e8e0d0';
       ctx.lineWidth = 0.8;
       ctx.stroke();
+      if (chalkActive) {
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(92, 158, 173, 0.95)';
+        ctx.fillRect(tipX + 14, -3, 6, 6);
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(tipX + 14, -3, 6, 6);
+      }
       ctx.shadowBlur = 0;
       ctx.shadowOffsetY = 0;
       ctx.strokeStyle = 'rgba(0,0,0,0.35)';
@@ -362,57 +413,115 @@ export function SnookerCanvas({
       });
     };
 
+    const SUB_STEPS = 5;
+    /**
+     * פיזיקה — כל הקוד שאחראי על תנועה והתנגשויות:
+     * 1. חיכוך (FRICTION) וזרימת תנועה (v, ball.vx/vy)
+     * 2. התנגשות עם קירות (WALL_BOUNCE)
+     * 3. התנגשות אלסטית כדור–כדור (החלפת רכיב מהירות לאורך הנורמל)
+     * 4. כיסים (isInPocket, הסרת כדורים)
+     * מקור המהירות הראשונית: handleMouseUp (velocityRef = cos/sin * strength).
+     */
     const updatePhysics = () => {
+      const balls = ballsRef.current;
+      const white = balls.find((b) => b.type === 'white');
+      if (!white) return;
       const v = velocityRef.current;
-      if (Math.abs(v.x) < MIN_VEL && Math.abs(v.y) < MIN_VEL) {
-        v.x = 0;
-        v.y = 0;
-        return;
-      }
-      v.x *= FRICTION;
-      v.y *= FRICTION;
-      white.x += v.x;
-      white.y += v.y;
 
-      if (white.x < BALL_R || white.x > width - BALL_R) {
-        white.x = Math.max(BALL_R, Math.min(width - BALL_R, white.x));
-        v.x *= -0.6;
-      }
-      if (white.y < BALL_R || white.y > height - BALL_R) {
-        white.y = Math.max(BALL_R, Math.min(height - BALL_R, white.y));
-        v.y *= -0.6;
-      }
+      for (let step = 0; step < SUB_STEPS; step++) {
+        const others = balls.filter((b) => b !== white && b.type !== 'white');
 
-      const others = balls.filter((b) => b !== white && b.type !== 'white');
-      for (let i = 0; i < others.length; i++) {
-        const o = others[i];
-        const d = Math.hypot(white.x - o.x, white.y - o.y);
-        if (d < BALL_R * 2) {
-          const potted = o.type;
-          const idx = balls.indexOf(o);
-          if (idx !== -1) balls.splice(idx, 1);
-          shockwavesRef.current.push({ x: o.x, y: o.y, t: 0, maxT: 35 });
-          const nearestPocket = pocketsRef.current.reduce((best, p) => {
-            const dist = (o.x - p.x) ** 2 + (o.y - p.y) ** 2;
-            return !best || dist < best.dist ? { p, dist } : best;
-          }, null as { p: { x: number; y: number }; dist: number } | null);
-          if (nearestPocket) pocketBurstsRef.current.push({ x: nearestPocket.p.x, y: nearestPocket.p.y, t: 0, maxT: 25 });
-          if (potted === 'red' && phase === 'red') {
-            lastPottedForChatRef.current = 'red';
-            onPotRed();
-          } else if (potted !== 'red' && potted !== 'white' && phase === 'color') {
-            lastPottedForChatRef.current = potted as string;
-            onPotColor(potted as ColorName);
+        // 1. חיכוך + תזוזה — כדור לבן
+        v.x *= FRICTION;
+        v.y *= FRICTION;
+        white.x += v.x;
+        white.y += v.y;
+        if (white.x < BALL_R || white.x > width - BALL_R) {
+          white.x = Math.max(BALL_R, Math.min(width - BALL_R, white.x));
+          v.x *= -WALL_BOUNCE;
+        }
+        if (white.y < BALL_R || white.y > height - BALL_R) {
+          white.y = Math.max(BALL_R, Math.min(height - BALL_R, white.y));
+          v.y *= -WALL_BOUNCE;
+        }
+
+        // הזזת שאר הכדורים
+        others.forEach((o) => {
+          const ovx = o.vx ?? 0;
+          const ovy = o.vy ?? 0;
+          (o as Ball).vx = ovx * FRICTION;
+          (o as Ball).vy = ovy * FRICTION;
+          o.x += (o.vx ?? 0);
+          o.y += (o.vy ?? 0);
+          if (o.x < BALL_R || o.x > width - BALL_R) {
+            o.x = Math.max(BALL_R, Math.min(width - BALL_R, o.x));
+            (o as Ball).vx = (o.vx ?? 0) * -WALL_BOUNCE;
           }
+          if (o.y < BALL_R || o.y > height - BALL_R) {
+            o.y = Math.max(BALL_R, Math.min(height - BALL_R, o.y));
+            (o as Ball).vy = (o.vy ?? 0) * -WALL_BOUNCE;
+          }
+        });
+
+        // 2. התנגשות אלסטית (מסה שווה): לבן מול אחרים — החלפת רכיב מהירות לאורך נורמל
+        for (const o of others) {
+          let d = Math.hypot(white.x - o.x, white.y - o.y);
+          if (d < 1) d = 1;
+          if (d >= COLLISION_RADIUS) continue;
           const nx = (white.x - o.x) / d;
           const ny = (white.y - o.y) / d;
-          const bounce = 0.4;
-          v.x += nx * bounce * 2;
-          v.y += ny * bounce * 2;
-          break;
+          const ovx = o.vx ?? 0;
+          const ovy = o.vy ?? 0;
+          const vrn = (v.x - ovx) * nx + (v.y - ovy) * ny;
+          if (vrn <= 0) continue;
+          v.x -= vrn * nx;
+          v.y -= vrn * ny;
+          (o as Ball).vx = ovx + vrn * nx;
+          (o as Ball).vy = ovy + vrn * ny;
+          const overlap = COLLISION_RADIUS - d;
+          white.x += nx * (overlap / 2);
+          white.y += ny * (overlap / 2);
+          o.x -= nx * (overlap / 2);
+          o.y -= ny * (overlap / 2);
+          shockwavesRef.current.push({ x: o.x, y: o.y, t: 0, maxT: 35 });
+        }
+
+        // 3. התנגשות כדור–כדור (אחרים ביניהם) — אותה פיזיקה
+        for (let i = 0; i < others.length; i++) {
+          for (let j = i + 1; j < others.length; j++) {
+            const a = others[i];
+            const b = others[j];
+            let d = Math.hypot(a.x - b.x, a.y - b.y);
+            if (d < 1) d = 1;
+            if (d >= COLLISION_RADIUS) continue;
+            const nx = (a.x - b.x) / d;
+            const ny = (a.y - b.y) / d;
+            const avx = a.vx ?? 0;
+            const avy = a.vy ?? 0;
+            const bvx = b.vx ?? 0;
+            const bvy = b.vy ?? 0;
+            const vrn = (avx - bvx) * nx + (avy - bvy) * ny;
+            if (vrn <= 0) continue;
+            (a as Ball).vx = avx - vrn * nx;
+            (a as Ball).vy = avy - vrn * ny;
+            (b as Ball).vx = bvx + vrn * nx;
+            (b as Ball).vy = bvy + vrn * ny;
+            const overlap = COLLISION_RADIUS - d;
+            a.x += nx * (overlap / 2);
+            a.y += ny * (overlap / 2);
+            b.x -= nx * (overlap / 2);
+            b.y -= ny * (overlap / 2);
+          }
         }
       }
 
+      // עצירת לבן כשהמהירות נמוכה
+      if (Math.abs(v.x) < MIN_VEL && Math.abs(v.y) < MIN_VEL) {
+        v.x = 0;
+        v.y = 0;
+      }
+
+      // כיסים: לבן נפל — איפוס מיקום
       if (isInPocket(white.x, white.y, pocketsRef.current)) {
         const pocket = pocketsRef.current.find((p) => (white.x - p.x) ** 2 + (white.y - p.y) ** 2 <= POCKET_R ** 2);
         if (pocket) pocketBurstsRef.current.push({ x: pocket.x, y: pocket.y, t: 0, maxT: 25 });
@@ -422,29 +531,42 @@ export function SnookerCanvas({
         v.y = 0;
       }
 
-      others.forEach((o) => {
-        if (isInPocket(o.x, o.y, pocketsRef.current)) {
-          pocketsRef.current.forEach((p) => {
-            if ((o.x - p.x) ** 2 + (o.y - p.y) ** 2 <= POCKET_R ** 2) {
-              pocketBurstsRef.current.push({ x: p.x, y: p.y, t: 0, maxT: 25 });
-            }
-          });
-          const idx = balls.indexOf(o);
-          if (idx !== -1) balls.splice(idx, 1);
+      // כיסים: כדור צבעוני/אדום נפל — הסרה + callback
+      const toRemove: Ball[] = [];
+      balls.forEach((b) => {
+        if (b === white) return;
+        if (isInPocket(b.x, b.y, pocketsRef.current)) toRemove.push(b);
+      });
+      toRemove.forEach((o) => {
+        const idx = balls.indexOf(o);
+        if (idx !== -1) balls.splice(idx, 1);
+        pocketsRef.current.forEach((p) => {
+          if ((o.x - p.x) ** 2 + (o.y - p.y) ** 2 <= POCKET_R ** 2) {
+            pocketBurstsRef.current.push({ x: p.x, y: p.y, t: 0, maxT: 25 });
+          }
+        });
+        if (o.type === 'red' && phase === 'red') {
+          lastPottedForChatRef.current = 'red';
+          onPotRed();
+        } else if (o.type !== 'red' && o.type !== 'white' && phase === 'color') {
+          lastPottedForChatRef.current = o.type as string;
+          onPotColor(o.type as ColorName);
         }
       });
     };
 
     const draw = () => {
+      const balls = ballsRef.current;
+      const white = balls.find((b) => b.type === 'white');
       drawTable();
       drawShockwaves();
       drawPocketBursts();
       balls.forEach((b) => drawBall(b, true));
-      if (velocityRef.current.x === 0 && velocityRef.current.y === 0 && !disabled) {
-        const a = angleRef.current;
-        drawPredictionLine(a, 0);
+      if (white && velocityRef.current.x === 0 && velocityRef.current.y === 0 && !disabled) {
+        const a = isDragging && dragStart.current ? dragStart.current.angle : angleRef.current;
+        drawPredictionLine(white, a, 0);
         const p = isDragging ? power / 100 : 0;
-        drawCustomCue(a, 0, p, activeCue);
+        drawCustomCue(white, a, 0, p, activeCue);
       }
     };
 
@@ -456,7 +578,7 @@ export function SnookerCanvas({
     };
     rafId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafId);
-  }, [width, height, phase, isDragging, power, disabled, onPotRed, onPotColor, activeCue]);
+  }, [width, height, phase, isDragging, power, disabled, onPotRed, onPotColor, activeCue, chalkActive]);
 
   const getCanvasCoords = (e: React.MouseEvent | MouseEvent) => {
     const canvas = canvasRef.current;
@@ -480,8 +602,9 @@ export function SnookerCanvas({
       if (isDragging && dragStart.current) {
         const dx = white.x - x;
         const dy = white.y - y;
-        const back = dx * Math.cos(angleRef.current) + dy * Math.sin(angleRef.current);
-        const p = Math.min(100, Math.max(0, back * 0.8));
+        const aimAngle = dragStart.current.angle;
+        const back = dx * Math.cos(aimAngle) + dy * Math.sin(aimAngle);
+        const p = Math.min(100, Math.max(0, back * 1.8));
         setPower(p);
       }
     },
@@ -496,7 +619,10 @@ export function SnookerCanvas({
     if (!white) return;
     const { x, y } = getCanvasCoords(e);
     const dist = Math.hypot(x - white.x, y - white.y);
-    if (dist > BALL_R * 5) return;
+    if (dist > BALL_R * 8) return;
+    const a = Math.atan2(y - white.y, x - white.x);
+    if (dist > BALL_R * 2) angleRef.current = a;
+    mousePos.current = { x, y };
     setIsDragging(true);
     setPower(0);
     dragStart.current = { x, y, angle: angleRef.current };
@@ -509,10 +635,11 @@ export function SnookerCanvas({
       if (!white) return;
       const bonus = activeCue?.powerBonus ?? 1;
       const strength = (power / 100) * POWER_FACTOR * 12 * bonus;
-      const a = angleRef.current;
+      const a = dragStart.current.angle;
+      // מקור המהירות הראשונית לפיזיקה (updatePhysics קורא ל־velocityRef)
       velocityRef.current = {
-        x: -Math.cos(a) * strength,
-        y: -Math.sin(a) * strength,
+        x: Math.cos(a) * strength,
+        y: Math.sin(a) * strength,
       };
       playSound('neon_click');
       onStrike?.();
@@ -532,38 +659,59 @@ export function SnookerCanvas({
   }, [isDragging]);
 
   return (
-    <Box sx={{ position: 'relative', display: 'inline-block' }}>
-      <canvas
-        ref={canvasRef}
-        width={width}
-        height={height}
-        onMouseMove={handleMouseMove}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-        style={{
+    <Box sx={{ position: 'relative', display: 'inline-block', pointerEvents: 'auto', width: '100%', maxWidth: width }}>
+      <Box
+        sx={{
+          perspective: '1100px',
+          perspectiveOrigin: '50% 30%',
           width: '100%',
           maxWidth: width,
-          height: 'auto',
-          maxHeight: height,
-          display: 'block',
-          borderRadius: 10,
-          cursor: disabled ? 'default' : isDragging ? 'none' : 'crosshair',
-          boxShadow: '0 0 50px rgba(0,0,0,0.9)',
+          '& > .snooker-table-3d': {
+            transform: 'rotateX(6deg)',
+            transformOrigin: 'center 85%',
+            transformStyle: 'preserve-3d',
+            backfaceVisibility: 'hidden',
+            borderRadius: 12,
+            boxShadow: '0 6px 24px rgba(0,0,0,0.45), 0 30px 70px rgba(0,0,0,0.35), 0 0 0 8px #2a1810',
+          },
         }}
-      />
-      {/* מד כוח נאון — צד ימין */}
+      >
+        <Box className="snooker-table-3d" sx={{ position: 'relative', width: '100%' }}>
+          <canvas
+            ref={canvasRef}
+            width={width}
+            height={height}
+            onMouseMove={handleMouseMove}
+            onMouseDown={handleMouseDown}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
+            style={{
+              width: '100%',
+              maxWidth: width,
+              height: 'auto',
+              aspectRatio: `${width} / ${height}`,
+              maxHeight: height,
+              display: 'block',
+              borderRadius: 8,
+              cursor: disabled ? 'default' : isDragging ? 'none' : 'crosshair',
+              touchAction: 'none',
+            }}
+          />
+        </Box>
+      </Box>
+      {/* מד כוח נאון — צד ימין, מותאם לגובה */}
       {!disabled && (
         <Box
           sx={{
             position: 'absolute',
-            right: -48,
+            right: -44,
             top: '50%',
             transform: 'translateY(-50%)',
-            width: 20,
-            height: 160,
+            width: 18,
+            height: 'min(160px, 28vh)',
+            minHeight: 100,
             border: '2px solid #ffd700',
-            borderRadius: 10,
+            borderRadius: 8,
             overflow: 'hidden',
             boxShadow: '0 0 12px rgba(255,215,0,0.5)',
             bgcolor: 'rgba(0,0,0,0.6)',

@@ -1,141 +1,125 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, Button, CircularProgress, Stack } from '@mui/material';
+import { Box, Typography, Button, CircularProgress, Stack, ToggleButton, ToggleButtonGroup, Grid, Paper } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useWalletStore } from '../store';
 import { useApiStatusStore } from '../../shared/store/apiStatus';
-import { useSessionStore } from '../auth';
 import { playSound } from '../../shared/audio';
-import { hapticClick } from '../../shared/hooks';
+
+const GAMES = [
+  { id: 'poker', name: 'פוקר', icon: '♠️', path: '/poker' },
+  { id: 'rummy', name: 'רמי אבנים', icon: '🀄', path: '/rummy-live' },
+  { id: 'snooker', name: 'סנוקר', icon: '🎱', path: '/snooker' },
+  { id: 'backgammon', name: 'שש-בש', icon: '🎲', path: '/backgammon' },
+];
+
+const STAKE_OPTIONS = [10, 50, 100, 500];
 
 export function LobbyView() {
   const navigate = useNavigate();
   const [searching, setSearching] = useState(false);
-  const [countdown, setCountdown] = useState(0);
+  const [selectedGame, setSelectedGame] = useState('poker');
+  const [selectedStake, setSelectedStake] = useState(10);
+  const balance = useWalletStore((s) => s.balance);
   const apiOnline = useApiStatusStore((s) => s.online);
-  const username = useSessionStore((s) => s.username);
-
-  useEffect(() => {
-    if (!searching) return;
-    const timer = setInterval(() => {
-      setCountdown((prev) => prev + 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [searching]);
+  /** ב-dev: רשום ב-.env VITE_DEV_BYPASS_API=true כדי לפתוח את הלובי בלי להריץ את ה-API */
+  const bypassApiCheck =
+    typeof import.meta !== 'undefined' &&
+    import.meta.env?.DEV &&
+    (import.meta.env as { VITE_DEV_BYPASS_API?: string }).VITE_DEV_BYPASS_API === 'true';
+  const isOnline = bypassApiCheck || apiOnline === true;
 
   const handleStartSearch = () => {
+    if (Number(balance) < selectedStake) {
+      alert("אין מספיק מטבעות!");
+      return;
+    }
+    
     playSound('neon_click');
-    hapticClick();
     setSearching(true);
-    setCountdown(0);
-    // Mock: auto-match after 5s
-    setTimeout(() => {
-      setSearching(false);
-      navigate('/backgammon');
-    }, 5000);
-  };
 
-  const handleCancelSearch = () => {
-    playSound('neon_click');
-    hapticClick();
-    setSearching(false);
-    setCountdown(0);
+    // סימולציה של מציאת יריב
+    setTimeout(() => {
+      const gamePath = GAMES.find(g => g.id === selectedGame)?.path || '/';
+      setSearching(false);
+      navigate(gamePath);
+    }, 3000);
   };
 
   return (
-    <Box
-      component={motion.div}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      sx={{
-        minHeight: '100vh',
-        background: 'linear-gradient(180deg, #0a0a0b 0%, #1a0a1a 100%)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        p: 3,
-        textAlign: 'center',
-      }}
-    >
-      {apiOnline === false && (
-        <Typography
-          variant="caption"
-          sx={{
-            color: '#ff4d9a',
-            bgcolor: 'rgba(255, 0, 85, 0.12)',
-            border: '1px solid rgba(255, 0, 85, 0.3)',
-            px: 1.5,
-            py: 0.5,
-            borderRadius: 1,
-            mb: 2,
-          }}
-        >
-          ה־API לא זמין — Matchmaking לא פעיל במצב Offline.
-        </Typography>
+    <Box sx={{ minHeight: '100vh', background: 'radial-gradient(circle, #1a0a1a 0%, #0a0a0b 100%)', p: 3, color: '#fff' }}>
+      
+      {/* Header עם יתרה */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4 }}>
+        <Typography variant="h5" sx={{ color: '#00f5d4', fontWeight: 'bold' }}>Skill Arena</Typography>
+        <Paper sx={{ px: 2, py: 1, bgcolor: 'rgba(255,215,0,0.1)', border: '1px solid #ffd700' }}>
+          <Typography sx={{ color: '#ffd700', fontWeight: 'bold' }}>{Number(balance).toLocaleString()} 🪙</Typography>
+        </Paper>
+      </Box>
+
+      {!isOnline && apiOnline === false && (
+        <Paper sx={{ p: 1.5, mb: 2, bgcolor: 'rgba(255,152,0,0.15)', border: '1px solid rgba(255,152,0,0.5)' }}>
+          <Typography sx={{ color: '#ff9800', fontSize: '0.9rem', textAlign: 'center' }}>
+            ה־API לא זמין — Matchmaking לא פעיל. הרץ את השרת: <strong>pnpm run dev:api</strong> (או pnpm run dev)
+          </Typography>
+        </Paper>
       )}
 
-      <Typography
-        variant="h4"
-        sx={{
-          color: 'primary.main',
-          fontFamily: "'Orbitron', sans-serif",
-          textShadow: '0 0 20px rgba(0,255,255,0.5)',
-          mb: 1,
-        }}
-      >
-        Matchmaking Lobby
-      </Typography>
-      <Typography variant="body2" sx={{ color: '#ccc', mb: 4 }}>
-        @{username ?? 'Guest'} · מחפש יריבים בדירוג דומה
-      </Typography>
+      {!searching ? (
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
+          <Typography variant="h6" sx={{ mb: 2, textAlign: 'center' }}>בחר משחק:</Typography>
+          
+          {/* גריד משחקים */}
+          <Grid container spacing={2} sx={{ mb: 4 }}>
+            {GAMES.map((game) => (
+              <Grid item xs={6} sm={4} key={game.id}>
+                <Paper
+                  onClick={() => setSelectedGame(game.id)}
+                  sx={{
+                    p: 2, textAlign: 'center', cursor: 'pointer',
+                    bgcolor: selectedGame === game.id ? 'rgba(0,245,212,0.2)' : 'rgba(255,255,255,0.05)',
+                    border: `2px solid ${selectedGame === game.id ? '#00f5d4' : 'transparent'}`,
+                    transition: '0.3s',
+                    '&:hover': { transform: 'scale(1.05)' }
+                  }}
+                >
+                  <Typography sx={{ fontSize: '2rem' }}>{game.icon}</Typography>
+                  <Typography sx={{ fontWeight: 'bold' }}>{game.name}</Typography>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
 
-      {searching ? (
-        <Stack alignItems="center" spacing={2}>
-          <CircularProgress sx={{ color: 'primary.main' }} size={60} />
-          <Typography sx={{ color: '#00ffff', fontWeight: 600 }}>
-            מחפש משחק... ({countdown}s)
-          </Typography>
-          <Typography variant="caption" sx={{ color: '#888' }}>
-            ELO matchmaking...
-          </Typography>
-          <Button
-            variant="outlined"
-            onClick={handleCancelSearch}
-            sx={{
-              mt: 2,
-              borderColor: '#888',
-              color: '#888',
-              '&:hover': { borderColor: '#aaa', bgcolor: 'rgba(255,255,255,0.05)' },
-            }}
+          <Typography variant="h6" sx={{ mb: 2, textAlign: 'center' }}>סכום כניסה:</Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mb: 4 }}>
+            {STAKE_OPTIONS.map(stake => (
+              <Button 
+                key={stake}
+                variant={selectedStake === stake ? "contained" : "outlined"}
+                onClick={() => setSelectedStake(stake)}
+                sx={{ borderRadius: 20 }}
+              >
+                {stake}
+              </Button>
+            ))}
+          </Box>
+
+          <Button 
+            fullWidth variant="contained" size="large"
+            onClick={handleStartSearch}
+            disabled={!isOnline}
+            sx={{ py: 2, background: 'linear-gradient(45deg, #00f5d4, #f72585)', fontWeight: 'bold' }}
           >
-            ביטול
+            מצא משחק
           </Button>
-        </Stack>
+        </motion.div>
       ) : (
-        <Button
-          variant="contained"
-          onClick={handleStartSearch}
-          disabled={apiOnline === false}
-          sx={{
-            px: 4,
-            py: 1.5,
-            fontSize: '1.1rem',
-            fontWeight: 'bold',
-            background: apiOnline === false ? 'rgba(100,100,100,0.3)' : 'linear-gradient(90deg, #00f5d4, #f72585)',
-            color: apiOnline === false ? '#666' : '#000',
-            boxShadow: apiOnline === false ? 'none' : '0 0 30px rgba(0,245,212,0.4)',
-            '&:hover': {
-              boxShadow: apiOnline === false ? 'none' : '0 0 40px rgba(247,37,133,0.6)',
-            },
-          }}
-        >
-          {apiOnline === false ? 'Offline' : 'חפש משחק'}
-        </Button>
+        <Stack alignItems="center" spacing={3} sx={{ mt: 10 }}>
+          <CircularProgress size={80} sx={{ color: '#00f5d4' }} />
+          <Typography variant="h5">מחפש יריב ל{GAMES.find(g => g.id === selectedGame)?.name}...</Typography>
+          <Button onClick={() => setSearching(false)} color="error">ביטול</Button>
+        </Stack>
       )}
-
-      <Typography variant="caption" sx={{ color: '#666', mt: 4 }}>
-        או חזור ל־<Box component="span" sx={{ color: 'primary.main', cursor: 'pointer' }} onClick={() => navigate('/')}>Feed</Box>
-      </Typography>
     </Box>
   );
 }

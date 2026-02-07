@@ -4,7 +4,7 @@
  */
 
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { checkRateLimit } from '../cache/redis.js';
+import { checkRateLimit } from '../cache/redis';
 
 export interface RateLimitOptions {
   limit: number;

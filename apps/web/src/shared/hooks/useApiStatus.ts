@@ -2,51 +2,48 @@ import { useEffect, useRef } from 'react';
 import { useApiStatusStore } from '../store/apiStatus';
 
 const HEALTH_URL = '/api/health';
-const DEFAULT_POLL_MS = 15000;
-const MAX_POLL_MS = 60000;
-const BACKOFF_MULTIPLIER = 1.5;
+/** כשהשרת מחובר — בדיקה כל 10 שניות */
+const POLL_WHEN_ONLINE_MS = 10000;
+/** כשהשרת down — מרווח ארוך כדי לא להציף קונסול ב-500 */
+const POLL_WHEN_OFFLINE_MS = 30000;
+const INITIAL_DELAY_MS = 2000;
 
-async function checkHealth(signal?: AbortSignal): Promise<boolean> {
-  try {
-    const res = await fetch(HEALTH_URL, { signal });
-    if (!res.ok) return false;
-    const data = await res.json().catch(() => ({}));
-    return data?.ok === true;
-  } catch {
-    return false;
-  }
-}
+const isDevBypass = () =>
+  typeof import.meta !== 'undefined' &&
+  import.meta.env?.DEV &&
+  (import.meta.env as { VITE_DEV_BYPASS_API?: string }).VITE_DEV_BYPASS_API === 'true';
 
-/** Polls API health; backs off when API is down to avoid console spam (500/connection errors). */
-export function useApiStatus(pollMs = DEFAULT_POLL_MS) {
+/**
+ * בודק אם ה-API חי. כש-online — כל 10s, כש-offline — כל 30s (פחות 500 בקונסול).
+ * ב-dev: VITE_DEV_BYPASS_API=true — לא קוראים ל-API ומסמנים online=true (משחרר את הלובי).
+ */
+export function useApiStatus() {
   const setOnline = useApiStatusStore((s) => s.setOnline);
-  const currentInterval = useRef(pollMs);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    let mounted = true;
-    let timer: ReturnType<typeof setTimeout> | null = null;
+    if (isDevBypass()) {
+      setOnline(true);
+      return;
+    }
 
-    const tick = async () => {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 6000);
-      const ok = await checkHealth(controller.signal);
-      clearTimeout(timeout);
-      if (mounted) {
+    const run = async () => {
+      try {
+        const res = await fetch(HEALTH_URL);
+        const ok = res.ok;
         setOnline(ok);
-        if (ok) currentInterval.current = pollMs;
-        else currentInterval.current = Math.min(
-          Math.round(currentInterval.current * BACKOFF_MULTIPLIER),
-          MAX_POLL_MS
-        );
+        timeoutRef.current = setTimeout(run, ok ? POLL_WHEN_ONLINE_MS : POLL_WHEN_OFFLINE_MS);
+      } catch {
+        setOnline(false);
+        timeoutRef.current = setTimeout(run, POLL_WHEN_OFFLINE_MS);
       }
-      const next = mounted ? currentInterval.current : pollMs;
-      timer = setTimeout(tick, next);
     };
 
-    tick();
+    const first = setTimeout(run, INITIAL_DELAY_MS);
+
     return () => {
-      mounted = false;
-      if (timer) clearTimeout(timer);
+      clearTimeout(first);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [pollMs, setOnline]);
+  }, [setOnline]);
 }

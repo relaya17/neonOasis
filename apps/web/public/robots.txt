@@ -1,0 +1,7 @@
+# Neon Oasis — SEO
+User-agent: *
+Allow: /
+Disallow: /admin
+
+# Sitemap — החלף neonoasis.com בדומיין שלך אם שונה
+Sitemap: https://neonoasis.com/sitemap.xml

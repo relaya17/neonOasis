@@ -4,8 +4,8 @@
  */
 
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { TournamentService } from '../services/tournamentService.js';
-import { db } from '../db/index.js';
+import { TournamentService } from '../services/tournamentService';
+import { db } from '../db/index';
 
 const tournamentService = new TournamentService(db);
 

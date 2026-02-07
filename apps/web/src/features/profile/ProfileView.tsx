@@ -9,6 +9,8 @@ import { useSessionStore } from '../auth';
 import { performFullLogout } from '../auth/performFullLogout';
 import { playSound } from '../../shared/audio';
 import { hapticClick } from '../../shared/hooks';
+import { NeonWallet } from '../../shared/components/NeonWallet';
+import { useNavigate } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
@@ -53,8 +55,10 @@ function WalletChart({
 
 export function ProfileView() {
   const { t } = useTranslation('common');
+  const navigate = useNavigate();
   const balance = useWalletStore((s) => s.balance);
   const oasisBalance = useWalletStore((s) => s.oasisBalance);
+  const prizeBalance = useWalletStore((s) => s.prizeBalance);
   const eloRating = useWalletStore((s) => s.eloRating);
   const userId = useWalletStore((s) => s.userId);
   const setBalance = useWalletStore((s) => s.setBalance);
@@ -193,7 +197,7 @@ export function ProfileView() {
           zIndex: 0,
         }}
       />
-      <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, width: '100%' }}>
+      <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, width: '100%', px: { xs: 2, sm: 3 }, pb: 2 }}>
       <Typography variant="h5" sx={{ color: 'primary.main' }}>
         {t('nav.me')}
       </Typography>
@@ -217,23 +221,56 @@ export function ProfileView() {
           ה־API לא זמין כרגע — נתוני פרופיל מוצגים במצב Offline.
         </Typography>
       )}
+      {/* ארנק יוקרתי — כרטיס Prize Balance, Balance, Cash Out + Add Funds, היסטוריה */}
+      <NeonWallet
+        userId={userId}
+        balance={balance}
+        prizeBalance={prizeBalance}
+        onCashOut={() => {
+          if (typeof window !== 'undefined' && window.alert) {
+            window.alert('בקשת פדיון נשלחה לבדיקה. כסף יישלח תוך 48 שעות לאחר אימות.');
+          }
+        }}
+        onAddFunds={() => navigate('/store')}
+        disabled={apiOnline === false}
+      />
+
+      {/* Oasis + ELO — קומפקטי */}
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: 'center' }}>
+        <Box sx={{ bgcolor: '#333', px: 2, py: 1.5, borderRadius: 2, border: '1px solid #00ffff' }}>
+          <Typography sx={{ color: '#00ffff', fontSize: '14px' }}>◉ {Number(oasisBalance).toLocaleString()} Oasis</Typography>
+        </Box>
+        <Box sx={{ bgcolor: '#333', px: 2, py: 1.5, borderRadius: 2, border: '1px solid #888' }}>
+          <Typography sx={{ color: '#e0e0e0', fontSize: '14px' }}>ELO {eloRating}</Typography>
+        </Box>
+      </Box>
+
+      {/* הפריטים שלי — מקלות, לוחות, קלפים (חיבור ל-API items_inventory בעתיד) */}
       <Box
         sx={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 2,
-          justifyContent: 'center',
+          width: '100%',
+          maxWidth: 360,
+          p: 2,
+          borderRadius: 2,
+          bgcolor: 'rgba(255,215,0,0.06)',
+          border: '1px solid rgba(255,215,0,0.3)',
         }}
       >
-        <Box sx={{ bgcolor: '#333', px: 3, py: 2, borderRadius: 2, border: '1px solid #ff00ff' }}>
-          <Typography sx={{ color: '#ff00ff' }}>💎 {Number(balance).toLocaleString()} {t('balance')}</Typography>
-        </Box>
-        <Box sx={{ bgcolor: '#333', px: 3, py: 2, borderRadius: 2, border: '1px solid #00ffff' }}>
-          <Typography sx={{ color: '#00ffff' }}>◉ {Number(oasisBalance).toLocaleString()} Oasis</Typography>
-        </Box>
-        <Box sx={{ bgcolor: '#333', px: 3, py: 2, borderRadius: 2, border: '1px solid #888' }}>
-          <Typography sx={{ color: '#e0e0e0' }}>ELO {eloRating}</Typography>
-        </Box>
+        <Typography variant="subtitle1" sx={{ color: '#ffd700', fontWeight: 'bold', mb: 1 }}>
+          הפריטים שלי
+        </Typography>
+        <Typography variant="body2" sx={{ color: '#aaa', mb: 1.5 }}>
+          מקלות סנוקר, לוחות ששבש, חפיסות קלפים — נשמרים כאן אחרי רכישה.
+        </Typography>
+        <Button
+          component={RouterLink}
+          to="/store"
+          variant="outlined"
+          size="small"
+          sx={{ borderColor: '#ffd700', color: '#ffd700', '&:hover': { borderColor: '#ffd700', bgcolor: 'rgba(255,215,0,0.1)' } }}
+        >
+          לחנות →
+        </Button>
       </Box>
 
       {/* גרף ניאון — ערך ארנק לאורך זמן ( API /transactions) */}

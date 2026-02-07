@@ -113,7 +113,7 @@ export function LandingPage() {
   const handleGameSelect = (game: GameOption) => {
     if (!game.available) return;
     playSound('neon_click');
-    navigate(game.route);
+    navigate(`/feed/${game.id}`);
   };
 
   return (

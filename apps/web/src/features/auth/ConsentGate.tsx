@@ -43,20 +43,40 @@ export function ConsentGate({ children }: ConsentGateProps) {
         <Typography variant="h6" sx={{ color: 'primary.main', mb: 2 }}>
           תנאי שימוש ומדיניות פרטיות
         </Typography>
+        <Box
+          sx={{
+            p: 1.5,
+            mb: 2,
+            borderRadius: 1,
+            bgcolor: 'rgba(255, 152, 0, 0.12)',
+            border: '1px solid rgba(255, 152, 0, 0.5)',
+          }}
+        >
+          <Typography variant="subtitle2" sx={{ color: '#ff9800', fontWeight: 'bold', mb: 0.5 }}>
+            אזהרות
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#e0e0e0' }}>
+            • גיל 18 ומעלה בלבד. אימות גיל (AI Guardian) חובה.
+            <br />
+            • משחק אחראי — המטבעות ניתנים לרכישה ולפדיון בהתאם לתקנון. אל תשחק/י מעבר ליכולתך.
+            <br />
+            • קישור למשחק אחראי:{' '}
+            <Link component={RouterLink} to="/responsible-gaming" sx={{ color: '#ff9800' }}>משחק אחראי</Link>
+          </Typography>
+        </Box>
         <Typography variant="body2" sx={{ color: '#ccc', mb: 2 }}>
           לפני שימוש ב-AI Guardian (אימות גיל וזהות) יש לאשר את תקנון השימוש ומדיניות הפרטיות.
           אנו משתמשים בנתוני פנים אך ורק לאימות גיל ולא לשמירה או שיתוף עם צדדים שלישיים.
         </Typography>
         <Typography variant="body2" sx={{ color: '#aaa', mb: 2 }}>
-          <strong>תקנון:</strong> השימוש בפלטפורמה כפוף לתקנון השירות. משחקים בכסף וירטואלי.
+          <strong>תנאי שימוש:</strong>{' '}
+          <Link component={RouterLink} to="/terms" sx={{ color: 'primary.main' }}>תקנון מלא (תנאי שימוש)</Link>
           <br />
-          <strong>מדיניות פרטיות:</strong> נתוני אימות נמחקים לאחר האימות.{' '}
-          <Link component={RouterLink} to="/terms" sx={{ color: 'primary.main' }}>תקנון מלא</Link>
-          {' · '}
+          <strong>מדיניות פרטיות:</strong>{' '}
           <Link component={RouterLink} to="/privacy" sx={{ color: 'primary.main' }}>מדיניות פרטיות</Link>
         </Typography>
         <Typography variant="caption" sx={{ color: '#888', display: 'block', mb: 2 }}>
-          שלבים: 1) אישור תנאים · 2) אימות גיל 18+ · 3) כניסה
+          שלבים: 1) אישור תנאים ואזהרות · 2) אימות גיל 18+ · 3) הסבר מטבעות וארנק · 4) וידאו פתיחה · 5) כניסה
         </Typography>
         <Button
           variant="contained"

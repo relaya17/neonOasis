@@ -36,6 +36,11 @@ export interface BackgammonMove {
   to: number | 'off';
 }
 
+/** Move with die used — for UI (highlight targets, which die was consumed) */
+export interface BackgammonMoveWithDie extends BackgammonMove {
+  die: number;
+}
+
 export interface SnookerState {
   kind: 'snooker';
   balls: Record<string, { x: number; y: number }>;
