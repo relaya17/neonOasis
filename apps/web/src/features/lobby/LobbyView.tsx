@@ -11,10 +11,34 @@ const NEON_PINK = '#f72585';
 const NEON_GOLD = '#ffd700';
 
 const GAMES = [
-  { id: 'poker', name: 'פוקר', icon: '♠️', path: '/poker' },
-  { id: 'rummy', name: 'רמי אבנים', icon: '🀄', path: '/rummy-live' },
-  { id: 'snooker', name: 'סנוקר', icon: '🎱', path: '/snooker' },
-  { id: 'backgammon', name: 'שש-בש', icon: '🎲', path: '/backgammon' },
+  {
+    id: 'poker',
+    name: 'פוקר',
+    icon: '♠️',
+    path: '/poker',
+    image: 'https://res.cloudinary.com/dora8sxcb/image/upload/v1770490600/bilyardm.png_duw95e.jpg',
+  },
+  {
+    id: 'rummy',
+    name: 'רמי אבנים',
+    icon: '🀄',
+    path: '/rummy-live',
+    image: '',
+  },
+  {
+    id: 'snooker',
+    name: 'סנוקר',
+    icon: '🎱',
+    path: '/snooker',
+    image: 'https://res.cloudinary.com/dora8sxcb/image/upload/v1770488588/lucid-origin_Top-down_orthographic_view_of_an_ultra-luxury_snooker_table_shimmering_bleck_sil-3_2_jujlyq.jpg',
+  },
+  {
+    id: 'backgammon',
+    name: 'שש-בש',
+    icon: '🎲',
+    path: '/backgammon',
+    image: 'https://res.cloudinary.com/dora8sxcb/image/upload/v1770488475/quarem4.png_dt88pt.png',
+  },
 ];
 
 const STAKE_OPTIONS = [10, 50, 100, 500];
@@ -59,7 +83,8 @@ export function LobbyView() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', background: 'radial-gradient(circle, #1a0a1a 0%, #0a0a0b 100%)', p: 3, color: '#fff' }}>
+    <Box sx={{ minHeight: '100vh', background: 'radial-gradient(circle, #1a0a1a 0%, #0a0a0b 100%)', p: 3, color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <Box sx={{ width: '100%', maxWidth: 900 }}>
 
       {/* Header עם יתרה */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
@@ -81,25 +106,92 @@ export function LobbyView() {
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
           <Typography variant="h6" sx={{ mb: 2, textAlign: 'center' }}>בחר משחק:</Typography>
 
-          {/* גריד משחקים */}
-          <Grid container spacing={2} sx={{ mb: 4 }}>
+          {/* גריד משחקים — ממורכז */}
+          <Grid container spacing={2} sx={{ mb: 4, justifyContent: 'center' }}>
             {GAMES.map((game) => (
               <Grid item xs={6} sm={3} key={game.id}>
                 <Paper
                   onClick={() => { playSound('neon_click'); setSelectedGame(game.id); }}
                   sx={{
-                    p: 2,
-                    textAlign: 'center',
+                    position: 'relative',
+                    overflow: 'hidden',
                     cursor: 'pointer',
-                    bgcolor: selectedGame === game.id ? 'rgba(0,245,212,0.2)' : 'rgba(255,255,255,0.05)',
-                    border: `2px solid ${selectedGame === game.id ? NEON_CYAN : 'transparent'}`,
+                    bgcolor: 'rgba(10,10,15,0.95)',
+                    border: `2px solid ${selectedGame === game.id ? NEON_CYAN : 'rgba(255,255,255,0.1)'}`,
                     borderRadius: 3,
-                    transition: '0.3s',
+                    transition: 'all 0.3s ease',
                     '&:hover': { transform: 'scale(1.05)', borderColor: NEON_CYAN },
+                    aspectRatio: '4/3',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'flex-end',
+                    mx: 'auto',
                   }}
                 >
-                  <Typography sx={{ fontSize: '2rem' }}>{game.icon}</Typography>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>{game.name}</Typography>
+                  {/* תמונת רקע — ממורכזת ומותאמת */}
+                  {game.image ? (
+                    <Box
+                      component="img"
+                      src={game.image}
+                      alt={game.name}
+                      sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        objectPosition: 'center center',
+                        filter: selectedGame === game.id ? 'brightness(0.75)' : 'brightness(0.5)',
+                        transition: 'filter 0.3s ease',
+                      }}
+                    />
+                  ) : (
+                    <Typography sx={{ fontSize: '2.5rem', position: 'relative', zIndex: 1, mb: 1 }}>{game.icon}</Typography>
+                  )}
+
+                  {/* שכבת הדרגה כהה בתחתית */}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 50%, transparent 100%)',
+                      p: 1.5,
+                      pt: 4,
+                    }}
+                  />
+
+                  {/* שם המשחק — ממורכז */}
+                  <Box sx={{ position: 'relative', zIndex: 1, pb: 1.5, textAlign: 'center', width: '100%' }}>
+                    {game.image && <Typography sx={{ fontSize: '1.5rem', lineHeight: 1, mb: 0.3 }}>{game.icon}</Typography>}
+                    <Typography sx={{
+                      fontWeight: 'bold',
+                      fontSize: '0.95rem',
+                      textShadow: '0 2px 8px rgba(0,0,0,0.9)',
+                      color: selectedGame === game.id ? NEON_CYAN : '#fff',
+                      transition: 'color 0.3s',
+                    }}>
+                      {game.name}
+                    </Typography>
+                  </Box>
+
+                  {/* אינדיקטור נבחר */}
+                  {selectedGame === game.id && (
+                    <Box sx={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      width: 14,
+                      height: 14,
+                      borderRadius: '50%',
+                      bgcolor: NEON_CYAN,
+                      boxShadow: `0 0 12px ${NEON_CYAN}`,
+                      border: '2px solid rgba(255,255,255,0.8)',
+                      zIndex: 2,
+                    }} />
+                  )}
                 </Paper>
               </Grid>
             ))}
@@ -219,6 +311,7 @@ export function LobbyView() {
           </Stack>
         </motion.div>
       )}
+      </Box>
     </Box>
   );
 }

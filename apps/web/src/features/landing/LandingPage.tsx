@@ -379,7 +379,7 @@ export function LandingPage() {
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.6 }}
-          style={{ width: '100%', maxWidth: 500, marginBottom: 40 }}
+          style={{ width: '100%', maxWidth: 500, marginBottom: 40, marginLeft: 'auto', marginRight: 'auto' }}
         >
           <Paper
             sx={{
@@ -440,7 +440,7 @@ export function LandingPage() {
         initial={{ y: 50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.6, duration: 0.8 }}
-        style={{ width: '100%', maxWidth: 900 }}
+        style={{ width: '100%', maxWidth: 900, marginLeft: 'auto', marginRight: 'auto' }}
       >
         <Typography
           sx={{
@@ -606,11 +606,13 @@ export function LandingPage() {
         </Button>
       )}
 
-      {/* Footer */}
+      {/* Footer — ממורכז */}
       <Typography
         sx={{
           position: 'absolute',
           bottom: 20,
+          left: 0,
+          right: 0,
           color: '#666',
           fontSize: '0.8rem',
           textAlign: 'center',
