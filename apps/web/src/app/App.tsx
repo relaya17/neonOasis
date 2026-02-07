@@ -56,14 +56,19 @@ export function App() {
 
   useApiStatus();
 
-  // ניתוק Socket כשהמשתמש סוגר את הדף / עוזב (טאב, רענון, ניווט החוצה)
+  // ניתוק Socket כשהמשתמש עוזב: סגירת דף, רענון, מעבר לטאב אחר או מינום
   useEffect(() => {
     const disconnectOnLeave = () => socketService.disconnect();
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') disconnectOnLeave();
+    };
     window.addEventListener('pagehide', disconnectOnLeave);
     window.addEventListener('beforeunload', disconnectOnLeave);
+    document.addEventListener('visibilitychange', onVisibilityChange);
     return () => {
       window.removeEventListener('pagehide', disconnectOnLeave);
       window.removeEventListener('beforeunload', disconnectOnLeave);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, []);
 

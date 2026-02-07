@@ -8,12 +8,19 @@ import { useApiStatusStore } from '../../shared/store/apiStatus';
 import { BackgammonBoard3D } from './Board3D';
 import { useAIDealer } from '../../shared/hooks';
 import { playSound, playVoice } from '../../shared/audio';
-import { BACKGAMMON_INTRO_VIDEO_URL } from '../../config/videoUrls';
+import {
+  BACKGAMMON_INTRO_VIDEO_URL,
+  RUMMY_INTRO_VIDEO_URL,
+  POKER_INTRO_VIDEO_URL,
+} from '../../config/videoUrls';
+import { responsiveVideoStyle } from '../../config/videoStyles';
 
 interface BoardContainerProps {
   tableId: string;
   /** userId לשליחה ב-auth (אחרי כניסה); ברירת מחדל מ-store */
   token?: string;
+  /** סוג המשחק — קובע איזה וידאו פרומו להציג */
+  gameType?: 'backgammon' | 'rummy' | 'poker';
 }
 
 /**
@@ -21,7 +28,7 @@ interface BoardContainerProps {
  */
 const NEON_GOLD = '#ffd700';
 
-export function BoardContainer({ tableId, token: tokenProp }: BoardContainerProps) {
+export function BoardContainer({ tableId, token: tokenProp, gameType = 'backgammon' }: BoardContainerProps) {
   const userId = useWalletStore((s) => s.userId);
   const token = tokenProp ?? userId ?? 'user-verified-token';
   const setState = useBackgammonStore((s) => s.setState);
@@ -30,6 +37,23 @@ export function BoardContainer({ tableId, token: tokenProp }: BoardContainerProp
   const lastMoveAtRef = useRef<number | null>(null);
   const [showIntroVideo, setShowIntroVideo] = useState(true);
   const introVideoRef = useRef<HTMLVideoElement>(null);
+
+  const currentVideo =
+    gameType === 'rummy' ? RUMMY_INTRO_VIDEO_URL
+    : gameType === 'poker' ? POKER_INTRO_VIDEO_URL
+    : BACKGAMMON_INTRO_VIDEO_URL;
+
+  // חיבור מחדש כשהמשתמש חוזר לטאב (אחרי ניתוק ב-visibilitychange ב-App)
+  const [reconnectKey, setReconnectKey] = useState(0);
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible' && !socketService.isConnected) {
+        setReconnectKey((k) => k + 1);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
 
   useEffect(() => {
     if (showIntroVideo && introVideoRef.current) {
@@ -108,7 +132,7 @@ export function BoardContainer({ tableId, token: tokenProp }: BoardContainerProp
       mounted = false;
       cleanup();
     };
-  }, [apiOnline, tableId, token, setState]);
+  }, [apiOnline, tableId, token, setState, reconnectKey]);
 
   /* כניסה לשש-בש — וידאו עם הדר גלוי (מתחת ל-AppBar) */
   if (showIntroVideo) {
@@ -128,16 +152,12 @@ export function BoardContainer({ tableId, token: tokenProp }: BoardContainerProp
       >
         <video
           ref={introVideoRef}
-          src={BACKGAMMON_INTRO_VIDEO_URL}
+          src={currentVideo}
           muted
           playsInline
           autoPlay
           loop
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-          }}
+          style={responsiveVideoStyle}
         />
         <Box
           sx={{
@@ -193,15 +213,8 @@ export function BoardContainer({ tableId, token: tokenProp }: BoardContainerProp
         playsInline
         autoPlay
         loop
-        style={{
-          position: 'absolute',
-          inset: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          zIndex: 0,
-        }}
-        src={BACKGAMMON_INTRO_VIDEO_URL}
+        src={currentVideo}
+        style={{ ...responsiveVideoStyle, zIndex: 0 }}
       />
       <Box sx={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', minHeight: '100vh' }}>
         <BackgammonBoard3D />

@@ -54,8 +54,11 @@ class PremiumSoundService {
   async preloadSounds(): Promise<void> {
     if (this.preloaded) return;
 
+    const base =
+      (typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL) || '';
+    const baseNorm = base.endsWith('/') ? base.slice(0, -1) : base;
+
     try {
-      // Sound effects (will use browser beep as fallback until MP3 files are added)
       const soundEvents: SoundEvent[] = [
         'click',
         'neon_click',
@@ -70,8 +73,7 @@ class PremiumSoundService {
       ];
 
       for (const event of soundEvents) {
-        // Check if sound file exists, otherwise use fallback
-        const soundPath = `/sounds/${event}.mp3`;
+        const soundPath = `${baseNorm}/sounds/${event}.mp3`;
         this.sounds.set(
           event,
           new Howl({
@@ -84,7 +86,6 @@ class PremiumSoundService {
         );
       }
 
-      // Voice narration (will use Web Speech API as fallback until audio files are added)
       const voiceEvents: VoiceEvent[] = [
         'welcome',
         'stake',
@@ -97,7 +98,7 @@ class PremiumSoundService {
       ];
 
       for (const event of voiceEvents) {
-        const voicePath = `/sounds/voice_${event}_${this.state.language}.mp3`;
+        const voicePath = `${baseNorm}/sounds/voice_${event}_${this.state.language}.mp3`;
         this.voices.set(
           event,
           new Howl({

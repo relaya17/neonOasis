@@ -3,6 +3,7 @@ import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead
 import { useTranslation } from 'react-i18next';
 import { useApiStatusStore } from '../../shared/store/apiStatus';
 import { LEADERBOARD_VIDEO_URL } from '../../config/videoUrls';
+import { fullScreenVideoStyle } from '../../config/videoStyles';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
@@ -64,23 +65,16 @@ export function LeaderboardView() {
       }}
     >
       {/* רקע וידאו */}
-      <Box
-        component="video"
-        autoPlay
-        loop
-        muted
-        playsInline
-        sx={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          zIndex: 0,
-        }}
-        src={LEADERBOARD_VIDEO_URL}
-      />
+      <Box sx={{ position: 'fixed', inset: 0, zIndex: 0 }}>
+        <video
+          src={LEADERBOARD_VIDEO_URL}
+          autoPlay
+          loop
+          muted
+          playsInline
+          style={fullScreenVideoStyle}
+        />
+      </Box>
       {/* שכבת כיסוי כהה */}
       <Box
         sx={{

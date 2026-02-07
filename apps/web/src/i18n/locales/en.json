@@ -44,5 +44,30 @@
       "privacy": "Privacy Policy",
       "responsible": "Responsible Gaming"
     }
+  },
+  "landing": {
+    "welcomeTitle": "Welcome",
+    "welcomeGuest": "Welcome, guest",
+    "welcomeName": "Welcome, {{name}}",
+    "continueAsGuest": "Continue as guest",
+    "loginToAccount": "Login",
+    "loggingIn": "Logging in...",
+    "chooseGame": "Choose game",
+    "enterGame": "Enter game",
+    "videoNotLoaded": "Video failed to load. Click to continue.",
+    "loadingVideo": "Loading video...",
+    "continueToHome": "Go to home",
+    "continueToLogin": "Continue to login",
+    "vegasPlatform": "Vegas Gaming Platform",
+    "tagline": "Don't rely on luck or the 777 machine – use your mind skills and you can win",
+    "games": {
+      "backgammon": "Backgammon",
+      "snooker": "Snooker",
+      "touch": "Rummy Stones",
+      "rummyStones": "Rummy Stones",
+      "poker": "Poker & More"
+    },
+    "comingSoon": "Coming soon",
+    "language": "Language"
   }
 }

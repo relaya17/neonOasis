@@ -1,226 +1,254 @@
 /**
- * Card Games - Touch/Solitaire Style
- * Build sequences like Solitaire
+ * רמי אבנים (Rummy Stones) — משחק אבנים בסגנון רומיקוב
+ * קבוצות (אותו מספר, צבעים שונים) וסדרות (רצף באותו צבע)
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Box, Button, Typography, Paper } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { playSound } from '../../shared/audio';
+import { RUMMY_INTRO_VIDEO_URL } from '../../config/videoUrls';
+import { fullScreenVideoStyle } from '../../config/videoStyles';
 
-const SUITS = ['♠', '♥', '♦', '♣'];
-const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-const RANK_ORDER: Record<string, number> = { A: 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, J: 11, Q: 12, K: 13 };
-const RED_SUITS = ['♥', '♦'];
+const COLORS = ['#e53935', '#1e88e5', '#43a047', '#fb8c00'] as const; // אדום, כחול, ירוק, כתום
+const NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as const;
+const COPIES = 2; // שני עותקים מכל אבן
 
-export interface Card {
-  suit: string;
-  rank: string;
-  faceUp: boolean;
+export interface Tile {
+  number: number;
+  color: string;
   id: string;
 }
 
-function isRed(card: Card): boolean {
-  return RED_SUITS.includes(card.suit);
-}
-
-function rankValue(rank: string): number {
-  return RANK_ORDER[rank] ?? 0;
-}
-
-export function createDeck(): Card[] {
-  const deck: Card[] = [];
-  SUITS.forEach((suit) => {
-    RANKS.forEach((rank) => {
-      deck.push({
-        suit,
-        rank,
-        faceUp: false,
-        id: `${rank}${suit}-${Math.random().toString(36).slice(2, 9)}`,
-      });
+function createTiles(): Tile[] {
+  const tiles: Tile[] = [];
+  COLORS.forEach((color) => {
+    NUMBERS.forEach((num) => {
+      for (let c = 0; c < COPIES; c++) {
+        tiles.push({
+          number: num,
+          color,
+          id: `${num}-${color}-${c}-${Math.random().toString(36).slice(2, 9)}`,
+        });
+      }
     });
   });
-  return deck;
+  return tiles;
 }
 
-export function shuffleDeck(deck: Card[]): Card[] {
-  const shuffled = [...deck];
-  for (let i = shuffled.length - 1; i > 0; i--) {
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    [a[i], a[j]] = [a[j], a[i]];
   }
-  return shuffled;
+  return a;
 }
 
-/** Deal classic solitaire: pile 0 gets 1 card, pile 1 gets 2, ... pile 6 gets 7; top of each face up. */
-function dealTableau(deck: Card[]): { tableau: Card[][]; remaining: Card[] } {
-  const shuffled = shuffleDeck([...deck]);
-  const tableau: Card[][] = [[], [], [], [], [], [], []];
-  let idx = 0;
-  for (let p = 0; p < 7; p++) {
-    for (let c = 0; c <= p; c++) {
-      const card = shuffled[idx++];
-      card.faceUp = c === p;
-      tableau[p].push(card);
-    }
+/** קבוצה תקנית: 3–4 אבנים עם אותו מספר, צבעים שונים */
+function isValidSet(tiles: Tile[]): boolean {
+  if (tiles.length < 3 || tiles.length > 4) return false;
+  const num = tiles[0].number;
+  const colors = new Set(tiles.map((t) => t.color));
+  return tiles.every((t) => t.number === num) && colors.size === tiles.length;
+}
+
+/** סדרה תקנית: 3+ אבנים באותו צבע, מספרים עוקבים */
+function isValidRun(tiles: Tile[]): boolean {
+  if (tiles.length < 3) return false;
+  const color = tiles[0].color;
+  const sorted = [...tiles].sort((a, b) => a.number - b.number);
+  if (!sorted.every((t) => t.color === color)) return false;
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i].number !== sorted[i - 1].number + 1) return false;
   }
-  return { tableau, remaining: shuffled.slice(idx) };
+  return true;
+}
+
+function isValidGroup(tiles: Tile[]): boolean {
+  return isValidSet(tiles) || isValidRun(tiles);
 }
 
 const NEON_CYAN = '#00f5d4';
 const NEON_PINK = '#f72585';
 const NEON_GOLD = '#ffd700';
 
-type PileSource = { type: 'tableau'; pileIndex: number; cardIndex: number } | { type: 'foundation'; pileIndex: number };
+/** טבלה = מערך קבוצות; כל קבוצה = מערך אבנים */
+type Table = Tile[][];
 
 export function TouchCardGame() {
   const navigate = useNavigate();
-  const initialDeal = useMemo(() => dealTableau(shuffleDeck(createDeck())), []);
-  const [tableau, setTableau] = useState<Card[][]>(() => initialDeal.tableau);
-  const [foundation, setFoundation] = useState<Card[][]>([[], [], [], []]);
-  const [stock, setStock] = useState<Card[]>(() => initialDeal.remaining);
-  const [selected, setSelected] = useState<PileSource | null>(null);
+  const [showIntroVideo, setShowIntroVideo] = useState(!!RUMMY_INTRO_VIDEO_URL);
+  const introVideoRef = useRef<HTMLVideoElement>(null);
+  const [pool, setPool] = useState<Tile[]>(() => shuffle(createTiles()));
+  const [hand, setHand] = useState<Tile[]>([]);
+  const [table, setTable] = useState<Table>([]);
+  const [selectedHandIndices, setSelectedHandIndices] = useState<Set<number>>(new Set());
+  const [pendingGroup, setPendingGroup] = useState<Tile[]>([]);
+  const [message, setMessage] = useState<string>('');
 
-  const getCard = (src: PileSource): Card | null => {
-    if (src.type === 'tableau') {
-      const pile = tableau[src.pileIndex];
-      return pile[src.cardIndex] ?? null;
+  useEffect(() => {
+    if (showIntroVideo && introVideoRef.current) {
+      introVideoRef.current.play().catch(() => {});
     }
-    const pile = foundation[src.pileIndex];
-    return pile.length > 0 ? pile[pile.length - 1] : null;
+  }, [showIntroVideo]);
+
+  const initialDealDone = hand.length > 0;
+  const handSize = 14;
+
+  const dealInitialHand = () => {
+    if (pool.length < handSize) return;
+    const drawn = pool.slice(0, handSize);
+    setPool((p) => p.slice(handSize));
+    setHand(drawn);
+    setMessage('בחר אבנים ליד ואז "הנח על השולחן", או "גרוף" כדי לקחת אבן.');
   };
 
-  const canMoveToFoundation = (card: Card, foundIndex: number): boolean => {
-    const pile = foundation[foundIndex];
-    if (pile.length === 0) return card.rank === 'A';
-    const top = pile[pile.length - 1];
-    return top.suit === card.suit && rankValue(card.rank) === rankValue(top.rank) + 1;
-  };
-
-  const canMoveToTableau = (card: Card, pileIndex: number): boolean => {
-    const pile = tableau[pileIndex];
-    if (pile.length === 0) return card.rank === 'K';
-    const top = pile[pile.length - 1];
-    return isRed(card) !== isRed(top) && rankValue(card.rank) === rankValue(top.rank) - 1;
-  };
-
-  const handleCardClick = (card: Card, pileType: string, pileIndex: number, cardIndex: number) => {
-    if (pileType !== 'tableau') return;
-    const pile = tableau[pileIndex];
-    const isTop = cardIndex === pile.length - 1;
-
-    if (!card.faceUp) {
-      if (isTop) {
-        playSound('card_flip');
-        setTableau((prev) => {
-          const next = prev.map((p, i) =>
-            i === pileIndex ? p.map((c, j) => (j === cardIndex ? { ...c, faceUp: true } : c)) : p
-          );
-          return next;
-        });
-      }
+  const drawOne = () => {
+    if (pool.length === 0) {
+      setMessage('אין עוד אבנים בגורל.');
       return;
     }
-
-    if (selected) {
-      const srcCard = getCard(selected);
-      if (!srcCard || (selected.type === 'tableau' && selected.pileIndex === pileIndex && selected.cardIndex === cardIndex)) {
-        setSelected(null);
-        return;
-      }
-      for (let f = 0; f < 4; f++) {
-        if (canMoveToFoundation(srcCard, f)) {
-          playSound('chip_stack');
-          setFoundation((prev) => {
-            const next = [...prev.map((p) => [...p])];
-            next[f] = [...next[f], srcCard];
-            return next;
-          });
-          if (selected.type === 'tableau') {
-            setTableau((prev) => prev.map((p, i) => (i === selected.pileIndex ? p.slice(0, selected.cardIndex) : p)));
-          } else {
-            setFoundation((prev) => prev.map((p, i) => (i === selected.pileIndex ? p.slice(0, -1) : p)));
-          }
-          setSelected(null);
-          return;
-        }
-      }
-      if (canMoveToTableau(srcCard, pileIndex)) {
-        playSound('chip_stack');
-        moveCardsToTableau(selected, pileIndex);
-        setSelected(null);
-        return;
-      }
-      setSelected(null);
-      return;
-    }
-
-    if (isTop) {
-      playSound('card_flip');
-      setSelected({ type: 'tableau', pileIndex, cardIndex });
-    }
+    playSound('card_flip');
+    const [tile] = pool;
+    setPool((p) => p.slice(1));
+    setHand((h) => [...h, tile]);
+    setMessage('אבן נגרה. הנח קבוצה/סדרה או גרוף שוב.');
   };
 
-  const moveCardsToTableau = (src: PileSource, toPileIndex: number) => {
-    let cards: Card[] = [];
-    if (src.type === 'tableau') {
-      const pile = tableau[src.pileIndex];
-      cards = pile.slice(src.cardIndex);
-    } else {
-      const pile = foundation[src.pileIndex];
-      cards = [pile[pile.length - 1]];
-    }
-    setTableau((prev) => {
-      const next = prev.map((p, i) => [...p]);
-      if (src.type === 'tableau') next[src.pileIndex] = next[src.pileIndex].slice(0, src.cardIndex);
-      next[toPileIndex] = [...next[toPileIndex], ...cards];
+  const toggleHandSelection = (index: number) => {
+    setSelectedHandIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
       return next;
     });
-    if (src.type === 'foundation') {
-      setFoundation((prev) => prev.map((p, i) => (i === src.pileIndex ? p.slice(0, -1) : p)));
-    }
   };
 
-  const handleFoundationClick = (foundIndex: number) => {
-    if (!selected) return;
-    const srcCard = getCard(selected);
-    if (!srcCard || !canMoveToFoundation(srcCard, foundIndex)) return;
+  const selectedTiles = useMemo(() => {
+    return Array.from(selectedHandIndices)
+      .sort((a, b) => a - b)
+      .map((i) => hand[i]);
+  }, [hand, selectedHandIndices]);
+
+  const placeSelectedOnTable = () => {
+    if (selectedTiles.length === 0) {
+      setMessage('בחר אבנים מהיד.');
+      return;
+    }
+    if (!isValidGroup(selectedTiles)) {
+      setMessage('לא תקף: קבוצה = 3–4 אותו מספר צבעים שונים; סדרה = 3+ רצף באותו צבע.');
+      return;
+    }
     playSound('chip_stack');
-    setFoundation((prev) => {
-      const next = [...prev.map((p) => [...p])];
-      next[foundIndex] = [...next[foundIndex], srcCard];
-      return next;
-    });
-    if (selected.type === 'tableau') {
-      setTableau((prev) => prev.map((p, i) => (i === selected.pileIndex ? p.slice(0, selected.cardIndex) : p)));
-    } else {
-      setFoundation((prev) => prev.map((p, i) => (i === selected.pileIndex ? p.slice(0, -1) : p)));
+    const indices = Array.from(selectedHandIndices).sort((a, b) => b - a);
+    setHand((h) => indices.reduce((acc, i) => acc.filter((_, idx) => idx !== i), [...h]));
+    setTable((t) => [...t, [...selectedTiles]]);
+    setSelectedHandIndices(new Set());
+    setMessage('');
+    if (hand.length - selectedTiles.length === 0) {
+      setMessage('🎉 ניצחת! רוקנת את היד.');
     }
-    setSelected(null);
   };
 
-  const handleTableauPileClick = (pileIndex: number) => {
-    const pile = tableau[pileIndex];
-    if (pile.length === 0 && selected) {
-      const srcCard = getCard(selected);
-      if (srcCard?.rank === 'K') {
-        playSound('chip_stack');
-        moveCardsToTableau(selected, pileIndex);
-        setSelected(null);
-      }
+  const addToPending = () => {
+    if (selectedTiles.length === 0) return;
+    setPendingGroup((p) => [...p, ...selectedTiles]);
+    const indices = Array.from(selectedHandIndices).sort((a, b) => b - a);
+    setHand((h) => indices.reduce((acc, i) => acc.filter((_, idx) => idx !== i), [...h]));
+    setSelectedHandIndices(new Set());
+  };
+
+  const placePendingAsGroup = () => {
+    if (pendingGroup.length === 0) return;
+    if (!isValidGroup(pendingGroup)) {
+      setMessage('הקבוצה ב"ממתין" אינה תקפה.');
+      return;
     }
+    playSound('chip_stack');
+    setTable((t) => [...t, [...pendingGroup]]);
+    setPendingGroup([]);
+    setMessage('');
+  };
+
+  const clearPending = () => {
+    if (pendingGroup.length === 0) return;
+    setHand((h) => [...h, ...pendingGroup]);
+    setPendingGroup([]);
+    setMessage('');
   };
 
   const handleNewGame = () => {
     playSound('neon_click');
-    const fullDeck = shuffleDeck(createDeck());
-    const { tableau: t, remaining } = dealTableau(fullDeck);
-    setTableau(t);
-    setFoundation([[], [], [], []]);
-    setStock(remaining);
-    setSelected(null);
+    const tiles = shuffle(createTiles());
+    setPool(tiles);
+    setHand([]);
+    setTable([]);
+    setSelectedHandIndices(new Set());
+    setPendingGroup([]);
+    setMessage('');
   };
+
+  if (showIntroVideo && RUMMY_INTRO_VIDEO_URL) {
+    return (
+      <Box
+        sx={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 999,
+          bgcolor: '#000',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <video
+          ref={introVideoRef}
+          src={RUMMY_INTRO_VIDEO_URL}
+          muted
+          playsInline
+          autoPlay
+          loop
+          style={fullScreenVideoStyle}
+        />
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            p: 2,
+            display: 'flex',
+            justifyContent: 'center',
+            background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
+          }}
+        >
+          <Button
+            variant="contained"
+            size="large"
+            onClick={() => {
+              playSound('neon_click');
+              setShowIntroVideo(false);
+            }}
+            sx={{
+              bgcolor: NEON_GOLD,
+              color: '#000',
+              fontWeight: 'bold',
+              fontSize: '1.1rem',
+              px: 4,
+              py: 1.5,
+              '&:hover': { bgcolor: NEON_GOLD, opacity: 0.9 },
+            }}
+          >
+            כניסה ללוח
+          </Button>
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -232,226 +260,164 @@ export function TouchCardGame() {
         position: 'relative',
       }}
     >
-      {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Button
           variant="outlined"
           size="small"
           onClick={() => navigate('/')}
-          sx={{
-            borderColor: NEON_CYAN,
-            color: NEON_CYAN,
-            fontSize: { xs: '0.7rem', sm: '0.875rem' },
-          }}
+          sx={{ borderColor: NEON_CYAN, color: NEON_CYAN, fontSize: { xs: '0.7rem', sm: '0.875rem' } }}
         >
           ← חזרה
         </Button>
-
-        <Typography
-          sx={{
-            color: NEON_GOLD,
-            fontWeight: 'bold',
-            fontSize: { xs: '1.2rem', sm: '1.5rem' },
-            textShadow: `0 0 10px ${NEON_GOLD}`,
-          }}
-        >
-          🃏 Touch • טאצ'
+        <Typography sx={{ color: NEON_GOLD, fontWeight: 'bold', fontSize: { xs: '1.2rem', sm: '1.5rem' }, textShadow: `0 0 10px ${NEON_GOLD}` }}>
+          🃏 רמי אבנים
         </Typography>
-
-        <Button
-          variant="contained"
-          size="small"
-          onClick={handleNewGame}
-          sx={{
-            bgcolor: NEON_PINK,
-            color: '#000',
-            fontSize: { xs: '0.7rem', sm: '0.875rem' },
-            fontWeight: 'bold',
-          }}
-        >
+        <Button variant="contained" size="small" onClick={handleNewGame} sx={{ bgcolor: NEON_PINK, color: '#000', fontSize: { xs: '0.7rem', sm: '0.875rem' }, fontWeight: 'bold' }}>
           משחק חדש
         </Button>
       </Box>
 
-      {/* Game Instructions */}
-      <Paper
-        sx={{
-          bgcolor: 'rgba(0, 255, 255, 0.1)',
-          border: `1px solid ${NEON_CYAN}`,
-          borderRadius: 1,
-          p: { xs: 1, sm: 1.5 },
-          mb: 2,
-          textAlign: 'center',
-        }}
-      >
+      <Paper sx={{ bgcolor: 'rgba(0, 255, 255, 0.1)', border: `1px solid ${NEON_CYAN}`, borderRadius: 1, p: 1.5, mb: 2, textAlign: 'center' }}>
         <Typography sx={{ color: '#fff', fontSize: { xs: '0.8rem', sm: '0.9rem' } }}>
-          🎯 <strong>מטרה:</strong> בנה סדרות מ-A עד K • הזז קלפים בין הערימות • בנה 4 חבילות מלאות
+          🎯 <strong>מטרה:</strong> להיפטר מכל האבנים ביד. <strong>קבוצה:</strong> 3–4 אותו מספר (צבעים שונים). <strong>סדרה:</strong> 3+ רצף באותו צבע.
         </Typography>
       </Paper>
 
-      {/* Foundation (4 stacks - completed sequences) */}
-      <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1 }, mb: 2, justifyContent: 'center' }}>
-        {foundation.map((pile, i) => (
-          <Box
-            key={`foundation-${i}`}
-            onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleFoundationClick(i); }}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleFoundationClick(i); } }}
-            sx={{
-              width: { xs: 50, sm: 70, md: 80 },
-              height: { xs: 70, sm: 98, md: 112 },
-              border: `2px dashed ${NEON_GOLD}`,
-              borderRadius: 1,
-              bgcolor: selected && getCard(selected) && canMoveToFoundation(getCard(selected)!, i) ? 'rgba(255, 215, 0, 0.2)' : 'rgba(255, 215, 0, 0.05)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: selected ? 'pointer' : 'default',
-            }}
-          >
-            {pile.length > 0 ? (
-              <Paper
-                sx={{
-                  height: '100%',
-                  width: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  bgcolor: '#fff',
-                  border: `2px solid ${NEON_GOLD}`,
-                }}
-              >
-                <Typography sx={{ fontSize: '1.5rem', color: pile[pile.length - 1].suit === '♥' || pile[pile.length - 1].suit === '♦' ? '#f00' : '#000' }}>
-                  {pile[pile.length - 1].suit}
-                </Typography>
-                <Typography sx={{ fontSize: '0.9rem', fontWeight: 'bold' }}>{pile[pile.length - 1].rank}</Typography>
-              </Paper>
-            ) : (
-              <Typography sx={{ color: NEON_GOLD, fontSize: { xs: '2rem', sm: '3rem' }, opacity: 0.3 }}>
-                {SUITS[i]}
-              </Typography>
-            )}
-          </Box>
-        ))}
-      </Box>
+      {!initialDealDone && (
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <Typography sx={{ color: NEON_CYAN, mb: 2 }}>לחץ כדי לחלק 14 אבנים ליד</Typography>
+          <Button variant="contained" onClick={dealInitialHand} sx={{ bgcolor: NEON_CYAN, color: '#000' }}>
+            חלוקה להתחלה
+          </Button>
+        </Box>
+      )}
 
-      {/* Tableau (7 piles - main playing area) */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: 'repeat(7, 1fr)', sm: 'repeat(7, 1fr)' },
-          gap: { xs: 0.3, sm: 0.5, md: 1 },
-          px: { xs: 0.5, sm: 1 },
-        }}
-      >
-        {tableau.map((pile, pileIndex) => (
-          <Box
-            key={`pile-${pileIndex}`}
-            onClick={() => pile.length === 0 && handleTableauPileClick(pileIndex)}
-            sx={{
-              minHeight: 200,
-              border: `2px dashed ${NEON_CYAN}44`,
-              borderRadius: 1,
-              bgcolor: pile.length === 0 && selected && getCard(selected)?.rank === 'K' ? 'rgba(0, 255, 255, 0.15)' : 'rgba(0, 255, 255, 0.03)',
-              p: { xs: 0.3, sm: 0.5 },
-              position: 'relative',
-              cursor: pile.length === 0 && selected ? 'pointer' : 'default',
-            }}
-          >
-            {pile.length === 0 && (
-              <Typography
-                sx={{
-                  color: NEON_CYAN,
-                  opacity: 0.2,
-                  fontSize: { xs: '0.7rem', sm: '0.8rem' },
-                  textAlign: 'center',
-                  mt: 1,
-                }}
-              >
-                {pileIndex + 1}
-              </Typography>
-            )}
-            {pile.map((card, cardIndex) => (
-              <motion.div
-                key={card.id}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                style={{
-                  position: cardIndex === 0 ? 'relative' : 'absolute',
-                  top: cardIndex * 20,
-                  left: 0,
-                  right: 0,
-                }}
-              >
+      {initialDealDone && (
+        <>
+          {/* שולחן */}
+          <Box sx={{ mb: 2 }}>
+            <Typography sx={{ color: NEON_GOLD, fontSize: '0.9rem', mb: 1 }}>שולחן</Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, minHeight: 80, p: 1, border: `1px dashed ${NEON_CYAN}66`, borderRadius: 1 }}>
+              {table.map((group, gi) => (
+                <Box key={gi} sx={{ display: 'flex', gap: 0.5, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {group.map((t) => (
+                    <Paper
+                      key={t.id}
+                      sx={{
+                        width: 44,
+                        height: 56,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: t.color,
+                        color: '#fff',
+                        fontWeight: 'bold',
+                        border: '2px solid rgba(255,255,255,0.5)',
+                      }}
+                    >
+                      <Typography sx={{ fontSize: '1.1rem' }}>{t.number}</Typography>
+                    </Paper>
+                  ))}
+                </Box>
+              ))}
+            </Box>
+          </Box>
+
+          {/* ממתין להנחה */}
+          {pendingGroup.length > 0 && (
+            <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+              <Typography sx={{ color: NEON_CYAN, fontSize: '0.85rem' }}>ממתין:</Typography>
+              {pendingGroup.map((t) => (
                 <Paper
-                  onClick={(e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    handleCardClick(card, 'tableau', pileIndex, cardIndex);
-                  }}
+                  key={t.id}
                   sx={{
-                    height: { xs: 70, sm: 98, md: 112 },
-                    bgcolor: card.faceUp ? '#fff' : '#333',
-                    border: selected?.type === 'tableau' && selected.pileIndex === pileIndex && selected.cardIndex === cardIndex
-                      ? `3px solid ${NEON_CYAN}`
-                      : `2px solid ${card.faceUp ? NEON_GOLD : '#555'}`,
-                    borderRadius: 1,
+                    width: 44,
+                    height: 56,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    cursor: 'pointer',
-                    boxShadow: selected?.type === 'tableau' && selected.pileIndex === pileIndex && selected.cardIndex === cardIndex ? `0 0 20px ${NEON_CYAN}` : 'none',
-                    '&:hover': {
-                      boxShadow: `0 0 15px ${NEON_CYAN}`,
-                    },
+                    bgcolor: t.color,
+                    color: '#fff',
+                    fontWeight: 'bold',
+                    border: '2px solid rgba(255,255,255,0.5)',
                   }}
                 >
-                  {card.faceUp ? (
-                    <>
-                      <Typography
-                        sx={{
-                          fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' },
-                          color: card.suit === '♥' || card.suit === '♦' ? '#f00' : '#000',
-                          fontWeight: 'bold',
-                        }}
-                      >
-                        {card.suit}
-                      </Typography>
-                      <Typography
-                        sx={{
-                          fontSize: { xs: '0.9rem', sm: '1.1rem', md: '1.3rem' },
-                          fontWeight: 'bold',
-                          color: card.suit === '♥' || card.suit === '♦' ? '#f00' : '#000',
-                        }}
-                      >
-                        {card.rank}
-                      </Typography>
-                    </>
-                  ) : (
-                    <Typography sx={{ color: '#666', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-                      🂠
-                    </Typography>
-                  )}
+                  {t.number}
                 </Paper>
-              </motion.div>
-            ))}
-          </Box>
-        ))}
-      </Box>
+              ))}
+              <Button size="small" variant="outlined" onClick={placePendingAsGroup} sx={{ borderColor: NEON_CYAN, color: NEON_CYAN }}>
+                הנח על השולחן
+              </Button>
+              <Button size="small" variant="outlined" onClick={clearPending} sx={{ borderColor: NEON_PINK, color: NEON_PINK }}>
+                החזר ליד
+              </Button>
+            </Box>
+          )}
 
-      {/* Instructions */}
-      <Typography
-        sx={{
-          color: '#666',
-          fontSize: { xs: '0.7rem', sm: '0.8rem' },
-          textAlign: 'center',
-          mt: 2,
-        }}
-      >
-        💡 טיפ: בנה סדרות יורדות בצבעים מתחלפים • העבר לבסיס כשסדרה מלאה
-      </Typography>
+          {/* כפתורי פעולה */}
+          <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+            <Button variant="contained" size="small" onClick={drawOne} sx={{ bgcolor: NEON_CYAN, color: '#000' }}>
+              גרוף אבן
+            </Button>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={placeSelectedOnTable}
+              disabled={selectedTiles.length === 0 || !isValidGroup(selectedTiles)}
+              sx={{ bgcolor: NEON_GOLD, color: '#000' }}
+            >
+              הנח קבוצה/סדרה מהיד
+            </Button>
+            <Button variant="outlined" size="small" onClick={addToPending} disabled={selectedTiles.length === 0} sx={{ borderColor: NEON_GOLD, color: NEON_GOLD }}>
+              הוסף ל"ממתין"
+            </Button>
+          </Box>
+
+          {message && (
+            <Typography sx={{ color: message.includes('🎉') ? NEON_GOLD : NEON_CYAN, fontSize: '0.9rem', mb: 1 }}>
+              {message}
+            </Typography>
+          )}
+
+          {/* יד */}
+          <Box>
+            <Typography sx={{ color: NEON_GOLD, fontSize: '0.9rem', mb: 1 }}>
+              היד ({hand.length}) • גורל: {pool.length}
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+              {hand.map((tile, index) => (
+                <motion.div key={tile.id} layout>
+                  <Paper
+                    onClick={() => toggleHandSelection(index)}
+                    sx={{
+                      width: { xs: 42, sm: 48 },
+                      height: { xs: 54, sm: 62 },
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      bgcolor: tile.color,
+                      color: '#fff',
+                      fontWeight: 'bold',
+                      border: selectedHandIndices.has(index) ? `3px solid ${NEON_GOLD}` : '2px solid rgba(255,255,255,0.4)',
+                      cursor: 'pointer',
+                      boxShadow: selectedHandIndices.has(index) ? `0 0 12px ${NEON_GOLD}` : 'none',
+                    }}
+                  >
+                    <Typography sx={{ fontSize: { xs: '1rem', sm: '1.2rem' } }}>{tile.number}</Typography>
+                  </Paper>
+                </motion.div>
+              ))}
+            </Box>
+          </Box>
+
+          <Typography sx={{ color: '#666', fontSize: '0.75rem', textAlign: 'center', mt: 2 }}>
+            💡 בחר אבנים מהיד → "הנח קבוצה/סדרה" אם התקף; או "הוסף לממתין" ואז הנח אחרי שתשלים קבוצה תקפה.
+          </Typography>
+        </>
+      )}
     </Box>
   );
 }

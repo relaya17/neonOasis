@@ -1,0 +1,73 @@
+{
+  "common": {
+    "appName": "Neon Oasis",
+    "nav": {
+      "feed": "动态",
+      "shop": "商店",
+      "rank": "排名",
+      "me": "我",
+      "backgammon": "双陆棋",
+      "store": "商店",
+      "admin": "管理",
+      "lobby": "大厅"
+    },
+    "balance": "金币",
+    "loading": "加载中...",
+    "leaderboard": "排行榜",
+    "username": "用户名",
+    "redeemCode": "兑换码",
+    "redeem": "兑换",
+    "referralLink": "邀请好友获 1,000 金币",
+    "getLink": "获取链接",
+    "copyLink": "复制链接",
+    "copied": "已复制！",
+    "walletValue": "钱包价值",
+    "walletValueDemo": "钱包（暂无记录）",
+    "login": "登录",
+    "loginSubtitle": "输入用户名或以游客继续",
+    "continueAsGuest": "游客继续",
+    "logout": "退出",
+    "back": "返回",
+    "accept": "我同意",
+    "offline": "离线",
+    "apiOffline": "API 不可用",
+    "matchmaking": "匹配中",
+    "searching": "正在寻找对局...",
+    "cancel": "取消",
+    "tournament": "锦标赛",
+    "purchasing": "购买中...",
+    "purchaseSuccess": "购买成功！",
+    "purchaseFailed": "购买失败",
+    "networkError": "网络错误",
+    "footer": {
+      "terms": "服务条款",
+      "privacy": "隐私政策",
+      "responsible": "负责任游戏"
+    }
+  },
+  "landing": {
+    "welcomeTitle": "欢迎",
+    "welcomeGuest": "欢迎，游客",
+    "welcomeName": "欢迎，{{name}}",
+    "continueAsGuest": "游客进入",
+    "loginToAccount": "登录账号",
+    "loggingIn": "登录中...",
+    "chooseGame": "选择游戏",
+    "enterGame": "进入游戏",
+    "videoNotLoaded": "视频加载失败。点击继续。",
+    "loadingVideo": "加载视频...",
+    "continueToHome": "进入首页",
+    "continueToLogin": "继续登录",
+    "vegasPlatform": "Vegas 游戏平台",
+    "tagline": "别靠运气，也别靠 777 机器——用你的脑力，你就能赢",
+    "games": {
+      "backgammon": "双陆棋",
+      "snooker": "斯诺克",
+      "touch": "拉米石",
+      "rummyStones": "拉米石",
+      "poker": "扑克及更多"
+    },
+    "comingSoon": "即将推出",
+    "language": "语言"
+  }
+}

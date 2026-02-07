@@ -44,5 +44,30 @@
       "privacy": "سياسة الخصوصية",
       "responsible": "لعب مسؤول"
     }
+  },
+  "landing": {
+    "welcomeTitle": "مرحباً",
+    "welcomeGuest": "مرحباً بالضيف",
+    "welcomeName": "مرحباً {{name}}",
+    "continueAsGuest": "متابعة كضيف",
+    "loginToAccount": "تسجيل الدخول",
+    "loggingIn": "جاري تسجيل الدخول...",
+    "chooseGame": "اختر اللعبة",
+    "enterGame": "الدخول إلى اللعبة",
+    "videoNotLoaded": "فشل تحميل الفيديو. انقر للمتابعة.",
+    "loadingVideo": "جاري تحميل الفيديو...",
+    "continueToHome": "الذهاب للصفحة الرئيسية",
+    "continueToLogin": "المتابعة لتسجيل الدخول",
+    "vegasPlatform": "منصة ألعاب Vegas",
+    "tagline": "لا تعتمد على الحظ ولا على آلة 777 – استخدم مهارات عقلك وستربح",
+    "games": {
+      "backgammon": "طاولة الزهر",
+      "snooker": "سنوكر",
+      "touch": "رومي الحجارة",
+      "rummyStones": "رومي الحجارة",
+      "poker": "بوكر والمزيد"
+    },
+    "comingSoon": "قريباً",
+    "language": "اللغة"
   }
 }

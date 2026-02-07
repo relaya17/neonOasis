@@ -5,7 +5,7 @@
 import { useState, useCallback } from 'react';
 import { Box, Button, Typography, Paper } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { createDeck, shuffleDeck, type Card } from './CardGame';
+import { createDeck, shuffleDeck, type Card } from './deck';
 import { playSound } from '../../shared/audio';
 
 const RANK_ORDER: Record<string, number> = { A: 14, K: 13, Q: 12, J: 11, '10': 10, '9': 9, '8': 8, '7': 7, '6': 6, '5': 5, '4': 4, '3': 3, '2': 2 };

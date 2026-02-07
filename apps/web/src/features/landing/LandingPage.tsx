@@ -5,19 +5,19 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import { Box, Button, Typography, Paper, Grid, Card, CardContent, CardActions } from '@mui/material';
-import { motion } from 'framer-motion';
-import CasinoIcon from '@mui/icons-material/Casino';
-import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
-import StyleIcon from '@mui/icons-material/Style';
-import SportsIcon from '@mui/icons-material/Sports';
+import { Box, Button, Typography, Paper, Grid, Card, CardContent, IconButton, Menu, MenuItem } from '@mui/material';
+import LanguageIcon from '@mui/icons-material/Language';
 import PersonIcon from '@mui/icons-material/Person';
 import LoginIcon from '@mui/icons-material/Login';
+import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useSessionStore } from '../auth/authStore';
 import { performFullLogout } from '../auth/performFullLogout';
 import { useWalletStore } from '../store';
 import { playSound } from '../../shared/audio';
-import { BACKGAMMON_INTRO_VIDEO_URL, POKER_INTRO_VIDEO_URL, SNOOKER_INTRO_VIDEO_URL, TOUCH_INTRO_VIDEO_URL, WELCOME_CHOICE_VIDEO_URL } from '../../config/videoUrls';
+import { SUPPORTED_LANGUAGES } from '../../i18n';
+import { BACKGAMMON_INTRO_VIDEO_URL, POKER_INTRO_VIDEO_URL, SNOOKER_INTRO_VIDEO_URL, RUMMY_INTRO_VIDEO_URL, WELCOME_CHOICE_VIDEO_URL } from '../../config/videoUrls';
+import { fullScreenVideoStyle, responsiveVideoStyle } from '../../config/videoStyles';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 const NEON_CYAN = '#00f5d4';
@@ -26,63 +26,23 @@ const NEON_GOLD = '#ffd700';
 
 interface GameOption {
   id: string;
-  name: string;
-  nameHe: string;
-  icon: React.ReactNode;
   route: string;
   color: string;
   available: boolean;
-  /** רקע הכרטיס — תמונה או וידאו (אם יש וידאו הוא יוצג במקום תמונה) */
   cardBackgroundImage?: string;
   cardBackgroundVideo?: string;
 }
 
 const games: GameOption[] = [
-  {
-    id: 'backgammon',
-    name: 'Backgammon',
-    nameHe: 'שש-בש',
-    icon: <CasinoIcon sx={{ fontSize: { xs: 40, sm: 60 } }} />,
-    route: '/backgammon',
-    color: NEON_CYAN,
-    available: true,
-    cardBackgroundImage: '/images/bord.png',
-    cardBackgroundVideo: BACKGAMMON_INTRO_VIDEO_URL,
-  },
-  {
-    id: 'snooker',
-    name: 'Snooker',
-    nameHe: 'סנוקר',
-    icon: <SportsIcon sx={{ fontSize: { xs: 40, sm: 60 } }} />,
-    route: '/snooker',
-    color: '#2e7d32',
-    available: true,
-    ...(SNOOKER_INTRO_VIDEO_URL && { cardBackgroundVideo: SNOOKER_INTRO_VIDEO_URL }),
-  },
-  {
-    id: 'touch',
-    name: 'Touch / Solitaire',
-    nameHe: 'טאצ / סוליטר',
-    icon: <StyleIcon sx={{ fontSize: { xs: 40, sm: 60 } }} />,
-    route: '/touch',
-    color: NEON_GOLD,
-    available: true,
-    ...(TOUCH_INTRO_VIDEO_URL && { cardBackgroundVideo: TOUCH_INTRO_VIDEO_URL }),
-  },
-  {
-    id: 'poker',
-    name: 'Poker & More',
-    nameHe: 'פוקר ועוד',
-    icon: <SportsEsportsIcon sx={{ fontSize: { xs: 40, sm: 60 } }} />,
-    route: '/poker',
-    color: NEON_PINK,
-    available: true,
-    cardBackgroundImage: '/images/bord2.png',
-    cardBackgroundVideo: POKER_INTRO_VIDEO_URL,
-  },
+  { id: 'backgammon', route: '/backgammon', color: NEON_CYAN, available: true, cardBackgroundImage: '/images/bord.png', cardBackgroundVideo: BACKGAMMON_INTRO_VIDEO_URL },
+  { id: 'snooker', route: '/snooker', color: '#2e7d32', available: true, ...(SNOOKER_INTRO_VIDEO_URL && { cardBackgroundVideo: SNOOKER_INTRO_VIDEO_URL }) },
+  { id: 'touch', route: '/touch', color: NEON_GOLD, available: true, ...(RUMMY_INTRO_VIDEO_URL && { cardBackgroundVideo: RUMMY_INTRO_VIDEO_URL }) },
+  { id: 'poker', route: '/poker', color: NEON_PINK, available: true, cardBackgroundImage: '/images/bord2.png', cardBackgroundVideo: POKER_INTRO_VIDEO_URL },
 ];
 
 export function LandingPage() {
+  const { t, i18n } = useTranslation(['landing', 'common']);
+  const [langAnchor, setLangAnchor] = useState<null | HTMLElement>(null);
   const [loggingIn, setLoggingIn] = useState(false);
   /** וידאו אחרי בחירת אורח/לוגין — כמו בשש-בש */
   const [showWelcomeVideo, setShowWelcomeVideo] = useState(false);
@@ -92,6 +52,7 @@ export function LandingPage() {
   const welcomeVideoRef = useRef<HTMLVideoElement>(null);
   const navigate = useNavigate();
   const sessionUserId = useSessionStore((s) => s.userId);
+  const sessionUsername = useSessionStore((s) => s.username);
   const setUser = useSessionStore((s) => s.setUser);
   const setUserId = useWalletStore((s) => s.setUserId);
   const fetchBalance = useWalletStore((s) => s.fetchBalance);
@@ -197,11 +158,8 @@ export function LandingPage() {
             onError={() => setWelcomeVideoError(true)}
             onLoadedData={() => setWelcomeVideoLoaded(true)}
             style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
+              ...fullScreenVideoStyle,
               opacity: welcomeVideoLoaded && !welcomeVideoError ? 1 : 0,
-              transform: 'scale(1.08, 0.9)', // רחב יותר לצדדים, גובה נוח
             }}
           />
           {(welcomeVideoError || (!welcomeVideoLoaded && !welcomeVideoError)) && (
@@ -224,11 +182,11 @@ export function LandingPage() {
             >
               {welcomeVideoError && (
                 <Typography sx={{ color: '#888', textAlign: 'center' }}>
-                  הווידאו לא נטען. לחץ להמשך.
+                  {t('landing:videoNotLoaded')}
                 </Typography>
               )}
               {!welcomeVideoLoaded && !welcomeVideoError && (
-                <Typography sx={{ color: '#666' }}>טוען וידאו...</Typography>
+                <Typography sx={{ color: '#666' }}>{t('landing:loadingVideo')}</Typography>
               )}
             </Box>
           )}
@@ -248,7 +206,7 @@ export function LandingPage() {
               variant="contained"
               size="large"
               onClick={handleWelcomeVideoContinue}
-              aria-label={afterWelcomeVideoNavigateTo ? 'המשך להתחברות' : 'כניסה לדף הבית'}
+              aria-label={afterWelcomeVideoNavigateTo ? t('landing:continueToLogin') : t('landing:continueToHome')}
               sx={{
                 bgcolor: NEON_GOLD,
                 color: '#000',
@@ -259,7 +217,7 @@ export function LandingPage() {
                 '&:hover': { bgcolor: NEON_GOLD, opacity: 0.9 },
               }}
             >
-              {afterWelcomeVideoNavigateTo ? 'המשך להתחברות' : 'כניסה לדף הבית'}
+              {afterWelcomeVideoNavigateTo ? t('landing:continueToLogin') : t('landing:continueToHome')}
             </Button>
           </Box>
         </Box>
@@ -282,6 +240,46 @@ export function LandingPage() {
           },
         }}
       />
+
+      {/* Language switcher */}
+      <Box sx={{ position: 'absolute', top: 16, left: 16, right: 16, display: 'flex', justifyContent: 'flex-end' }}>
+        <IconButton
+          onClick={(e: React.MouseEvent<HTMLButtonElement>) => setLangAnchor(e.currentTarget)}
+          sx={{ color: NEON_CYAN, '&:hover': { bgcolor: 'rgba(0,245,212,0.1)' } }}
+          aria-label={t('landing:language')}
+        >
+          <LanguageIcon />
+        </IconButton>
+        <Menu anchorEl={langAnchor} open={!!langAnchor} onClose={() => setLangAnchor(null)}>
+          {SUPPORTED_LANGUAGES.map(({ code, label }) => (
+            <MenuItem
+              key={code}
+              selected={i18n.language === code || i18n.language.startsWith(code + '-')}
+              onClick={() => { i18n.changeLanguage(code); setLangAnchor(null); }}
+            >
+              {label}
+            </MenuItem>
+          ))}
+        </Menu>
+      </Box>
+
+      {/* ברכה למשתמש מחובר: אורח או שם פרטי */}
+      {sessionUserId && (
+        <Typography
+          sx={{
+            color: NEON_GOLD,
+            fontWeight: 'bold',
+            fontSize: { xs: '1.1rem', sm: '1.35rem' },
+            textAlign: 'center',
+            mb: 1,
+            textShadow: `0 0 15px ${NEON_GOLD}99`,
+          }}
+        >
+          {sessionUsername === 'Guest' || sessionUsername === 'אורח' || !sessionUsername
+            ? t('landing:welcomeGuest')
+            : t('landing:welcomeName', { name: sessionUsername.split(/\s+/)[0] || sessionUsername })}
+        </Typography>
+      )}
 
       {/* Logo */}
       <motion.div
@@ -306,13 +304,36 @@ export function LandingPage() {
           sx={{
             color: NEON_PINK,
             textAlign: 'center',
-            mb: { xs: 3, sm: 4 },
+            mb: 1,
             textShadow: `0 0 20px ${NEON_PINK}`,
-            fontSize: { xs: '1.2rem', sm: '1.5rem' },
+            fontSize: { xs: '1rem', sm: '1.2rem' },
           }}
         >
-          🎰 Vegas Gaming Platform
+          🎰 {t('landing:vegasPlatform')}
         </Typography>
+        <Box
+          sx={{
+            textAlign: 'center',
+            maxWidth: { xs: '95%', sm: 720 },
+            mx: 'auto',
+            mb: { xs: 3, sm: 4 },
+            px: 2,
+          }}
+        >
+          <Typography
+            sx={{
+              fontFamily: '"Bebas Neue", "Orbitron", sans-serif',
+              color: NEON_GOLD,
+              fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' },
+              lineHeight: 1.4,
+              letterSpacing: { xs: 0.5, sm: 1 },
+              textShadow: `0 0 25px ${NEON_GOLD}99, 0 0 12px ${NEON_GOLD}66`,
+              textAlign: 'center',
+            }}
+          >
+            {t('landing:tagline')}
+          </Typography>
+        </Box>
       </motion.div>
 
       {/* Login Options - Only if not logged in */}
@@ -333,9 +354,8 @@ export function LandingPage() {
             }}
           >
             <Typography variant="h6" sx={{ color: '#fff', mb: 2, textAlign: 'center', fontWeight: 'bold' }}>
-              ברוך הבא / Welcome
+              {t('landing:welcomeTitle')}
             </Typography>
-            
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Button
                 variant="contained"
@@ -351,15 +371,11 @@ export function LandingPage() {
                   fontSize: '1.1rem',
                   py: 1.5,
                   boxShadow: `0 0 20px ${NEON_CYAN}66`,
-                  '&:hover': {
-                    bgcolor: NEON_CYAN,
-                    boxShadow: `0 0 30px ${NEON_CYAN}`,
-                  },
+                  '&:hover': { bgcolor: NEON_CYAN, boxShadow: `0 0 30px ${NEON_CYAN}` },
                 }}
               >
-                {loggingIn ? 'מתחבר...' : 'כניסה כאורח / Guest'}
+                {loggingIn ? t('landing:loggingIn') : t('landing:continueAsGuest')}
               </Button>
-
               <Button
                 variant="outlined"
                 size="large"
@@ -372,13 +388,10 @@ export function LandingPage() {
                   fontWeight: 'bold',
                   fontSize: '1rem',
                   py: 1.2,
-                  '&:hover': {
-                    borderColor: NEON_PINK,
-                    bgcolor: `${NEON_PINK}22`,
-                  },
+                  '&:hover': { borderColor: NEON_PINK, bgcolor: `${NEON_PINK}22` },
                 }}
               >
-                כניסה לחשבון / Login
+                {t('landing:loginToAccount')}
               </Button>
             </Box>
           </Paper>
@@ -401,142 +414,118 @@ export function LandingPage() {
             fontSize: { xs: '1.3rem', sm: '1.5rem' },
           }}
         >
-          בחר משחק / Choose Game
+          {t('landing:chooseGame')}
         </Typography>
 
-        <Grid container spacing={{ xs: 2, sm: 3 }} justifyContent="center">
+        <Grid container spacing={{ xs: 2, sm: 3, md: 4 }} justifyContent="center">
           {games.map((game) => (
-            <Grid item xs={12} sm={6} md={4} key={game.id}>
-              <Card
-                component={motion.div}
-                whileHover={{ scale: game.available ? 1.02 : 1 }}
-                whileTap={{ scale: game.available ? 0.98 : 1 }}
-                onClick={() => handleGameSelect(game)}
-                sx={{
-                  bgcolor: game.available ? 'rgba(26, 26, 26, 0.9)' : 'rgba(50, 50, 50, 0.5)',
-                  border: `2px solid ${game.available ? game.color : '#444'}`,
-                  borderRadius: 2,
-                  cursor: game.available ? 'pointer' : 'not-allowed',
-                  transition: 'all 0.3s',
-                  opacity: game.available ? 1 : 0.5,
-                  overflow: 'hidden',
-                  position: 'relative',
-                  '&:hover': game.available
-                    ? {
-                        boxShadow: `0 0 30px ${game.color}66`,
-                        borderColor: game.color,
-                      }
-                    : {},
-                  /* רקע: וידאו או תמונה — וידאו דורס תמונה */
-                  ...((game.cardBackgroundVideo || game.cardBackgroundImage) && {
-                    '& .card-content-inner, & .MuiCardActions-root': {
-                      position: 'relative',
-                      zIndex: 1,
-                    },
-                    '& .card-content-inner': {
-                      textShadow: '0 0 8px rgba(0,0,0,0.9), 0 1px 3px #000',
-                    },
-                  }),
-                  ...(game.cardBackgroundImage && !game.cardBackgroundVideo && {
-                    backgroundImage: `url(${game.cardBackgroundImage})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    '&::before': {
-                      content: '""',
-                      position: 'absolute',
-                      inset: 0,
-                      background: 'linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.5) 40%, rgba(0,0,0,0.7) 100%)',
-                      pointerEvents: 'none',
-                      zIndex: 0,
-                    },
-                  }),
-                }}
-              >
-                {game.cardBackgroundVideo && (
-                  <>
-                    <Box
-                      component="video"
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      sx={{
-                        position: 'absolute',
-                        inset: 0,
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        zIndex: 0,
-                      }}
-                      src={game.cardBackgroundVideo}
-                    />
-                    <Box
-                      sx={{
+            <Grid item xs={12} sm={6} md={6} key={game.id}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
+                <Typography
+                  variant="h4"
+                  sx={{
+                    color: game.available ? game.color : '#666',
+                    fontWeight: 'bold',
+                    fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' },
+                    textAlign: 'center',
+                  }}
+                >
+                  {t(`landing:games.${game.id}`)}
+                </Typography>
+                <Card
+                  component={motion.div}
+                  whileHover={{ scale: game.available ? 1.02 : 1 }}
+                  whileTap={{ scale: game.available ? 0.98 : 1 }}
+                  onClick={() => handleGameSelect(game)}
+                  sx={{
+                    width: '100%',
+                    bgcolor: game.available ? 'rgba(26, 26, 26, 0.9)' : 'rgba(50, 50, 50, 0.5)',
+                    border: `2px solid ${game.available ? game.color : '#444'}`,
+                    borderRadius: 2,
+                    cursor: game.available ? 'pointer' : 'not-allowed',
+                    transition: 'all 0.3s',
+                    opacity: game.available ? 1 : 0.5,
+                    overflow: 'hidden',
+                    position: 'relative',
+                    minHeight: { xs: 180, sm: 240, md: 280 },
+                    '&:hover': game.available
+                      ? {
+                          boxShadow: `0 0 30px ${game.color}66`,
+                          borderColor: game.color,
+                        }
+                      : {},
+                    ...((game.cardBackgroundVideo || game.cardBackgroundImage) && {
+                      '& .card-content-inner': {
+                        position: 'relative',
+                        zIndex: 1,
+                        textShadow: '0 0 8px rgba(0,0,0,0.9), 0 1px 3px #000',
+                      },
+                    }),
+                    ...(game.cardBackgroundImage && !game.cardBackgroundVideo && {
+                      backgroundImage: `url(${game.cardBackgroundImage})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      '&::before': {
+                        content: '""',
                         position: 'absolute',
                         inset: 0,
                         background: 'linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.5) 40%, rgba(0,0,0,0.7) 100%)',
                         pointerEvents: 'none',
-                        zIndex: 0.5,
-                      }}
-                    />
-                  </>
-                )}
-                <CardContent sx={{ textAlign: 'center', py: 3 }} className="card-content-inner">
-                  <Box sx={{ color: game.available ? game.color : '#666', mb: 2 }}>
-                    {game.icon}
-                  </Box>
-                  <Typography
-                    variant="h5"
-                    sx={{
-                      color: game.available ? game.color : '#666',
-                      fontWeight: 'bold',
-                      mb: 0.5,
-                    }}
-                  >
-                    {game.nameHe}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: game.available ? '#aaa' : '#555',
-                      fontSize: '0.9rem',
-                    }}
-                  >
-                    {game.name}
-                  </Typography>
-                </CardContent>
-                <CardActions sx={{ justifyContent: 'center', pb: 2, flexDirection: 'column', gap: 1 }}>
-                  {game.available ? (
+                        zIndex: 0,
+                      },
+                    }),
+                  }}
+                >
+                  {game.cardBackgroundVideo && (
                     <>
-                      <Button
-                        component={RouterLink}
-                        to={game.route}
-                        variant="contained"
-                        size="medium"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          playSound('neon_click');
-                        }}
+                      <Box sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0 }}>
+                        <video
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          src={game.cardBackgroundVideo}
+                          style={responsiveVideoStyle}
+                        />
+                      </Box>
+                      <Box
                         sx={{
-                          bgcolor: game.color,
-                          color: '#000',
-                          fontWeight: 'bold',
-                          '&:hover': { bgcolor: game.color, opacity: 0.9 },
+                          position: 'absolute',
+                          inset: 0,
+                          background: 'linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.5) 40%, rgba(0,0,0,0.7) 100%)',
+                          pointerEvents: 'none',
+                          zIndex: 0.5,
                         }}
-                      >
-                        כניסה למשחק
-                      </Button>
-                      <Typography sx={{ color: game.color, fontSize: '0.85rem', fontWeight: 'bold' }}>
-                        ✓ זמין / Available
-                      </Typography>
+                      />
                     </>
-                  ) : (
-                    <Typography sx={{ color: '#666', fontSize: '0.85rem' }}>
-                      🔒 בקרוב / Coming Soon
-                    </Typography>
                   )}
-                </CardActions>
-              </Card>
+                  <CardContent className="card-content-inner" sx={{ minHeight: { xs: 180, sm: 240, md: 280 }, py: 0, '&:last-child': { pb: 0 } }} />
+                </Card>
+                {game.available ? (
+                  <Button
+                    component={RouterLink}
+                    to={game.route}
+                    variant="contained"
+                    size="large"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      playSound('neon_click');
+                    }}
+                    sx={{
+                      bgcolor: game.color,
+                      color: '#000',
+                      fontWeight: 'bold',
+                      '&:hover': { bgcolor: game.color, opacity: 0.9 },
+                    }}
+                  >
+                    {t('landing:enterGame')}
+                  </Button>
+                ) : (
+                  <Typography sx={{ color: '#666', fontSize: '0.85rem' }}>
+                    🔒 {t('landing:comingSoon')}
+                  </Typography>
+                )}
+              </Box>
             </Grid>
           ))}
         </Grid>
@@ -555,7 +544,7 @@ export function LandingPage() {
             '&:hover': { color: '#fff' },
           }}
         >
-          התנתק / Logout
+          {t('common:logout')}
         </Button>
       )}
 

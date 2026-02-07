@@ -2,7 +2,7 @@
  * Poker utilities — hand ranking for Texas Hold'em
  */
 
-import type { Card } from './CardGame';
+import type { Card } from './deck';
 
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 const POKER_VAL: Record<string, number> = {};

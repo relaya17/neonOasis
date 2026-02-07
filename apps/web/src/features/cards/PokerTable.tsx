@@ -7,10 +7,11 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { Box, Button, Typography, Paper } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { createDeck, shuffleDeck, type Card } from './CardGame';
+import { createDeck, shuffleDeck, type Card } from './deck';
 import { evaluateHand, compareHands, HAND_NAMES_HE } from './pokerUtils';
 import { playSound, playVoice } from '../../shared/audio';
 import { POKER_INTRO_VIDEO_URL } from '../../config/videoUrls';
+import { responsiveVideoStyle } from '../../config/videoStyles';
 
 const NEON_CYAN = '#00f5d4';
 const NEON_PINK = '#f72585';
@@ -159,11 +160,7 @@ export function PokerTable() {
           playsInline
           autoPlay
           loop
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-          }}
+          style={responsiveVideoStyle}
         />
         <Box
           sx={{

@@ -44,5 +44,30 @@
       "privacy": "מדיניות פרטיות",
       "responsible": "משחק אחראי"
     }
+  },
+  "landing": {
+    "welcomeTitle": "ברוך הבא",
+    "welcomeGuest": "ברוך הבא אורח",
+    "welcomeName": "ברוך הבא {{name}}",
+    "continueAsGuest": "כניסה כאורח",
+    "loginToAccount": "כניסה לחשבון",
+    "loggingIn": "מתחבר...",
+    "chooseGame": "בחר משחק",
+    "enterGame": "כניסה למשחק",
+    "videoNotLoaded": "הווידאו לא נטען. לחץ להמשך.",
+    "loadingVideo": "טוען וידאו...",
+    "continueToHome": "כניסה לדף הבית",
+    "continueToLogin": "המשך להתחברות",
+    "vegasPlatform": "פלטפורמת משחקי Vegas",
+    "tagline": "אל תסתמך על המזל ואיקס על המכונה של 777 – בוא תנצל את כישורי המוח שלך ותוכל להרוויח",
+    "games": {
+      "backgammon": "שש-בש",
+      "snooker": "סנוקר",
+      "touch": "רמי אבנים",
+      "rummyStones": "רמי אבנים",
+      "poker": "פוקר ועוד"
+    },
+    "comingSoon": "בקרוב",
+    "language": "שפה"
   }
 }
